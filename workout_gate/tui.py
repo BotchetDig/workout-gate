@@ -8,6 +8,7 @@ import curses
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 from . import store
@@ -157,7 +158,8 @@ def _no_tty_fallback():
     real Terminal window instead (macOS), or explain the alternatives."""
     wrapper = Path(__file__).resolve().parent.parent / "workout"
     if sys.platform == "darwin" and wrapper.exists():
-        script = f'tell application "Terminal"\nactivate\ndo script "exec \'{wrapper}\'"\nend tell'
+        runner = _write_dashboard_runner(wrapper)
+        script = f'tell application "Terminal"\nactivate\ndo script "\'{runner}\'"\nend tell'
         try:
             subprocess.run(["osascript", "-e", script], capture_output=True, timeout=10, check=True)
             print("Dashboard opened in a new Terminal window.")
@@ -169,6 +171,29 @@ def _no_tty_fallback():
           "  workout now      start a challenge\n"
           "  workout stats    totals, streak, record\n"
           "  workout status   current settings")
+
+
+def _write_dashboard_runner(wrapper: Path) -> Path:
+    """Script run inside the popped Terminal window: dashboard, then the
+    window closes itself (a detached osascript closes the window owning this
+    shell's tty - 'whose' filters on nested properties silently fail, hence
+    the explicit loop; the tty goes through argv to avoid quoting)."""
+    runner = Path(tempfile.gettempdir()) / "workout-gate-dashboard.sh"
+    runner.write_text(f"""#!/bin/sh
+clear
+'{wrapper}'
+exec osascript -e 'on run argv
+tell application "Terminal"
+repeat with w in windows
+try
+if tty of selected tab of w is (item 1 of argv) then close w
+end try
+end repeat
+end tell
+end run' "$(tty)" >/dev/null 2>&1
+""")
+    runner.chmod(0o755)
+    return runner
 
 
 def main():
