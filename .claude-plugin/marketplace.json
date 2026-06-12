@@ -1,7 +1,7 @@
 {
-  "name": "pushup-gate",
+  "name": "workout-gate",
   "owner": {
-    "name": "CHANGE-ME"
+    "name": "BotchetDig"
   },
   "plugins": [
     {

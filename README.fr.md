@@ -13,8 +13,8 @@ fermes la session pour esquiver ? La dette t'attend à la suivante.
 ### En plugin Claude Code (recommandé)
 
 ```
-/plugin marketplace add CHANGE-ME/pushup-gate
-/plugin install workout-gate@pushup-gate
+/plugin marketplace add BotchetDig/workout-gate
+/plugin install workout-gate@workout-gate
 ```
 
 Démarre une nouvelle session : l'onboarding s'ouvre tout seul dans une fenêtre
@@ -27,13 +27,13 @@ cassent jamais l'installation (le runtime vit dans `~/.workout-gate/`).
 ### Une ligne, sans le plugin
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/CHANGE-ME/pushup-gate/main/get.sh | bash
+curl -fsSL https://raw.githubusercontent.com/BotchetDig/workout-gate/main/get.sh | bash
 ```
 
 Relancer la même ligne met à jour. Tu préfères inspecter d'abord ?
 
 ```bash
-git clone <ce-repo> && cd pushup-gate
+git clone https://github.com/BotchetDig/workout-gate.git && cd workout-gate
 ./install.sh
 ```
 

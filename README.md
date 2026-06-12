@@ -1,10 +1,10 @@
 # Workout Gate 🏋️
 
-> Your prompt is blocked until you drop and give the webcam some pushups.
+> Your AI works hard, so should you.
 
-Workout Gate holds your Claude Code prompts hostage behind a physical
-challenge: pushups, counted live on your webcam. No pushups, no prompt. Close
-the session to dodge it? The debt is waiting for you next time.
+A Claude Code hook that blocks your prompt until you do your push-ups, counted
+live via webcam. Random reps, session-persistent debt (no closing the tab to
+skip), streak stats, and three trigger modes.
 
 *Version française : [README.fr.md](README.fr.md)*
 
@@ -13,8 +13,8 @@ the session to dodge it? The debt is waiting for you next time.
 ### As a Claude Code plugin (recommended)
 
 ```
-/plugin marketplace add CHANGE-ME/pushup-gate
-/plugin install workout-gate@pushup-gate
+/plugin marketplace add BotchetDig/workout-gate
+/plugin install workout-gate@workout-gate
 ```
 
 Start a new session: onboarding pops up in a Terminal window on its own —
@@ -26,13 +26,13 @@ break the install (the runtime lives in `~/.workout-gate/`).
 ### One line, without the plugin
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/CHANGE-ME/pushup-gate/main/get.sh | bash
+curl -fsSL https://raw.githubusercontent.com/BotchetDig/workout-gate/main/get.sh | bash
 ```
 
 Re-running the same line updates the install. Prefer to look around first?
 
 ```bash
-git clone <this-repo> && cd pushup-gate
+git clone https://github.com/BotchetDig/workout-gate.git && cd workout-gate
 ./install.sh
 ```
 

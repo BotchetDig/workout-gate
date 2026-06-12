@@ -1,11 +1,11 @@
 #!/bin/sh
 # Workout Gate one-line installer:
-#   curl -fsSL https://raw.githubusercontent.com/CHANGE-ME/pushup-gate/main/get.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/BotchetDig/workout-gate/main/get.sh | bash
 #
 # Clones (or updates) the app into ~/.workout-gate/app and runs the installer.
 set -eu
 
-REPO_URL="${WORKOUT_GATE_REPO:-https://github.com/CHANGE-ME/pushup-gate.git}"
+REPO_URL="${WORKOUT_GATE_REPO:-https://github.com/BotchetDig/workout-gate.git}"
 APP_DIR="${WORKOUT_GATE_APP_DIR:-$HOME/.workout-gate/app}"
 
 command -v git >/dev/null 2>&1 || { echo "error: git is required"; exit 1; }
