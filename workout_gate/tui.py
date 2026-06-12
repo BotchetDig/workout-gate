@@ -11,7 +11,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from . import store
+from . import cursesui, store
 from .trigger import PRESETS, apply_preset
 
 SPARK = "▁▂▃▄▅▆▇█"
@@ -104,61 +104,58 @@ def _sparkline(days):
     return "".join(SPARK[min(7, int(n / top * 7 + 0.5))] for _, n in days)
 
 
-def _put(scr, y, x, text, attr=0):
-    try:
-        scr.addstr(y, x, text, attr)
-    except curses.error:
-        pass  # terminal too small; drop what doesn't fit
-
-
-def _draw(scr, config, state, selected, message):
+def _draw(scr, C, config, state, selected, message):
     scr.erase()
+    put = cursesui.put
     h, w = scr.getmaxyx()
-    bold, dim = curses.A_BOLD, curses.A_DIM
 
-    _put(scr, 0, 2, "WORKOUT GATE", bold)
+    put(scr, 0, 2, "WORKOUT GATE", C["title"])
     from . import challenge
     headline = f"debt: {challenge.pending_summary(state)}" if (
         state.get("debt_reps") or state.get("debt_offers")) else "no debt"
     if config["trigger"] == "prompts":
         headline += f"  -  prompts: {state['prompt_count']}/{config['every_n_prompts']}"
-    _put(scr, 0, 16, headline, dim)
+    put(scr, 0, 16, headline, C["dim"])
 
     for i, (label, value, key) in enumerate(_rows(config)):
         y = 2 + i + (1 if key.startswith("@") else 0)
-        marker = "> " if i == selected else "  "
-        attr = curses.A_REVERSE if i == selected else 0
+        marker = "› " if i == selected else "  "
+        attr = C["sel"] if i == selected else C["plain"]
         if key.startswith("@"):
-            _put(scr, y, 2, f"{marker}[ {label} ]", attr | bold)
+            put(scr, y, 2, f"{marker}[ {label} ]", attr | C["bold"])
         else:
-            _put(scr, y, 2, f"{marker}{label:<20} {value:<12}", attr)
+            put(scr, y, 2, f"{marker}{label:<20} ", attr)
+            put(scr, y, 24, f"{value:<12}", attr if i == selected else C["ok"])
 
     stats = store.load_stats()
     by_day = stats["by_day"]
     days = store.last_days(by_day)
     record = store.best_day(by_day)
     sy = 2 + len(_rows(config)) + 2
-    _put(scr, sy, 2, "STATS", bold)
-    _put(scr, sy + 1, 2,
-         f"total {stats['total_reps']}  -  today {by_day.get(store.today(), 0)}"
-         f"  -  streak {store.streak_days(by_day)}d"
-         + (f"  -  record {record[1]} ({record[0][5:]})" if record else ""))
-    _put(scr, sy + 2, 2, f"last 7 days  {_sparkline(days)}  ({days[0][0][5:]} to {days[-1][0][5:]})")
+    put(scr, sy, 2, "STATS", C["title"])
+    put(scr, sy + 1, 2,
+        f"total {stats['total_reps']}  -  today {by_day.get(store.today(), 0)}"
+        f"  -  streak {store.streak_days(by_day)}d"
+        + (f"  -  record {record[1]} ({record[0][5:]})" if record else ""))
+    put(scr, sy + 2, 2, "last 7 days  ", C["dim"])
+    put(scr, sy + 2, 15, _sparkline(days), C["ok"])
+    put(scr, sy + 2, 15 + len(days) + 2, f"({days[0][0][5:]} to {days[-1][0][5:]})", C["dim"])
 
     if message:
-        _put(scr, sy + 4, 2, message, bold)
-    _put(scr, h - 1, 2, "up/down navigate - left/right change - enter select - q quit", dim)
+        put(scr, sy + 4, 2, message, C["warn"] | C["bold"])
+    put(scr, h - 1, 2, "↑/↓ navigate   ←/→ change   enter select   q quit", C["dim"])
     scr.refresh()
 
 
 def _menu(scr, message=""):
     curses.curs_set(0)
     scr.keypad(True)
+    C = cursesui.palette()
     selected = 0
     while True:
         config = store.load_config()
         rows = _rows(config)
-        _draw(scr, config, store.load_state(), selected, message)
+        _draw(scr, C, config, store.load_state(), selected, message)
         ch = scr.getch()
         message = ""
         if ch in (ord("q"), 27):

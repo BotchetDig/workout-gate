@@ -7,10 +7,8 @@ terminal (e.g. Claude Code's '!' prompt), so the same command works anywhere.
 import curses
 import sys
 
-from . import store
+from . import cursesui, store
 from .detector import EXERCISES
-
-SPARK = "▁▂▃▄▅▆▇█"
 
 
 def _views():
@@ -26,20 +24,12 @@ def _view_data(stats, view):
 
 
 def _bar(value, maxv, width):
-    filled = round(width * value / maxv) if maxv > 0 else 0
-    return "█" * filled + "░" * (width - filled)
+    return cursesui.bar(value, maxv, width)
 
 
-def _put(scr, y, x, text, attr=0):
-    try:
-        scr.addstr(y, x, text, attr)
-    except curses.error:
-        pass
-
-
-def _draw(scr, stats, idx):
+def _draw(scr, C, stats, idx):
     scr.erase()
-    bold, dim = curses.A_BOLD, curses.A_DIM
+    put = cursesui.put
     views = _views()
     view = views[idx]
     title, total, day_counts = _view_data(stats, view)
@@ -48,33 +38,36 @@ def _draw(scr, stats, idx):
     days = store.last_days(day_counts)
     day_max = max((n for _, n in days), default=0)
 
-    _put(scr, 0, 2, "WORKOUT GATE", bold)
-    _put(scr, 0, 16, "· stats", dim)
-    _put(scr, 2, 2, f"◀  {title}  ▶", bold | curses.A_REVERSE)
-    _put(scr, 2, 26, f"({idx + 1}/{len(views)})", dim)
+    put(scr, 0, 2, "WORKOUT GATE", C["title"])
+    put(scr, 0, 16, "· stats", C["dim"])
+    put(scr, 2, 2, f"◀  {title}  ▶", C["sel"])
+    put(scr, 2, 26, f"({idx + 1}/{len(views)})", C["dim"])
 
-    _put(scr, 4, 2, f"Total   {total}", bold)
-    _put(scr, 5, 2, f"Streak  {streak} day" + ("s" if streak != 1 else "")
-         + (" 🔥" if streak > 0 else ""))
+    put(scr, 4, 2, "Total   ", C["dim"])
+    put(scr, 4, 10, str(total), C["bold"])
+    put(scr, 5, 2, f"Streak  {streak} day" + ("s" if streak != 1 else "")
+        + (" 🔥" if streak > 0 else ""))
     if record:
-        _put(scr, 6, 2, f"Record  {record[1]}  ({record[0][5:]})")
+        put(scr, 6, 2, f"Record  {record[1]}  ({record[0][5:]})")
 
-    _put(scr, 8, 2, "Last 7 days", dim)
+    put(scr, 8, 2, "Last 7 days", C["dim"])
     for i, (d, n) in enumerate(days):
-        bar = _bar(n, day_max, 20)
-        _put(scr, 9 + i, 2, f"{d[5:]}  {bar}  {n}", 0 if n else dim)
+        put(scr, 9 + i, 2, f"{d[5:]}  ", C["dim"])
+        put(scr, 9 + i, 9, cursesui.bar(n, day_max, 20), C["ok"] if n else C["dim"])
+        put(scr, 9 + i, 31, str(n), C["bold"] if n else C["dim"])
 
-    _put(scr, 9 + len(days) + 1, 2, "←/→ switch exercise   q quit", dim)
+    put(scr, 9 + len(days) + 1, 2, "←/→ switch exercise   q quit", C["dim"])
     scr.refresh()
 
 
 def _loop(scr):
     curses.curs_set(0)
     scr.keypad(True)
+    C = cursesui.palette()
     idx = 0
     n = len(_views())
     while True:
-        _draw(scr, store.load_stats(), idx)
+        _draw(scr, C, store.load_stats(), idx)
         ch = scr.getch()
         if ch in (ord("q"), 27):
             return
