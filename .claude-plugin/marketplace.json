@@ -7,7 +7,7 @@
     {
       "name": "workout-gate",
       "source": "./",
-      "description": "Pushups before prompts: a webcam-counted physical challenge gates your Claude Code prompts."
+      "description": "Exercise before prompts: a webcam-counted challenge (push-ups or squats) gates your Claude Code prompts."
     }
   ]
 }

@@ -1,6 +1,6 @@
 {
   "name": "workout-gate",
-  "description": "Pushups before prompts: a webcam-counted physical challenge gates your Claude Code prompts. Dodge it and the debt follows you.",
+  "description": "Exercise before prompts: a webcam-counted challenge (push-ups or squats) gates your Claude Code prompts. Dodge it and the debt follows you.",
   "version": "1.4.2",
   "author": {
     "name": "BotchetDig"
