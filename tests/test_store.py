@@ -48,6 +48,18 @@ class StoreTest(unittest.TestCase):
         self.assertEqual(on_disk["total_reps"], 5)
         self.assertFalse((Path(self.tmp.name) / "stats.tmp").exists())
 
+    def test_challenge_pid_lifecycle(self):
+        self.assertIsNone(self.store.running_challenge_pid())
+        self.store.write_challenge_pid()
+        self.assertEqual(self.store.running_challenge_pid(), os.getpid())
+        self.store.clear_challenge_pid()
+        self.assertIsNone(self.store.running_challenge_pid())
+
+    def test_stale_pid_cleaned_up(self):
+        (Path(self.tmp.name) / "challenge.pid").write_text("99999999")
+        self.assertIsNone(self.store.running_challenge_pid())
+        self.assertFalse((Path(self.tmp.name) / "challenge.pid").exists())
+
     def test_unknown_keys_preserved_with_new_defaults(self):
         """A config written by an older/newer version keeps defaults for
         missing keys (forward-compat for V2)."""

@@ -53,6 +53,7 @@ def draw_announce(frame, exercise: str, target: int, seconds_left: float):
     _text(frame, f"{target} REPS TO UNLOCK YOUR PROMPT", w // 2, int(h * 0.45), 1.3, YELLOW, 3)
     _text(frame, "GET IN POSITION", w // 2, int(h * 0.62), 1.3, WHITE, 3)
     _text(frame, str(max(1, int(seconds_left + 0.999))), w // 2, int(h * 0.85), 4.0, YELLOW, 10)
+    _esc_hint(frame)
 
 
 def draw_hud(frame, exercise: str, count: int, target: int,
@@ -78,6 +79,14 @@ def draw_hud(frame, exercise: str, count: int, target: int,
         fill = margin + int((w - 2 * margin) * min(1.0, count / target))
         cv2.rectangle(frame, (margin, bar_y0), (fill, bar_y1), GREEN, -1)
     cv2.rectangle(frame, (margin, bar_y0), (w - margin, bar_y1), WHITE, 2)
+    _esc_hint(frame)
+
+
+def _esc_hint(frame):
+    h, w = frame.shape[:2]
+    text = "[ESC] give up - progress is saved"
+    cv2.putText(frame, text, (12, h - 10), FONT, 0.55, BLACK, 4, cv2.LINE_AA)
+    cv2.putText(frame, text, (12, h - 10), FONT, 0.55, WHITE, 1, cv2.LINE_AA)
 
 
 def draw_validated(frame):

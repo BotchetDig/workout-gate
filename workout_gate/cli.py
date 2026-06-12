@@ -13,6 +13,8 @@ def main(argv=None):
     sub.add_parser("off", help="disable the gate")
     sub.add_parser("now", help="force a challenge right now")
     sub.add_parser("pay", help="settle the pending debt (opens the webcam window)")
+    sub.add_parser("stop", help="close a running challenge window (progress is saved)")
+    sub.add_parser("help", help="show this help")
     sub.add_parser("stats", help="totals, streak, record, last 7 days")
     sub.add_parser("status", help="show gate state")
     sub.add_parser("ui", help="full-screen interactive dashboard (arrow keys)")
@@ -28,6 +30,27 @@ def main(argv=None):
     if args.cmd in (None, "ui"):
         from . import tui
         tui.main()
+        return
+
+    if args.cmd == "help":
+        parser.print_help()
+        return
+
+    if args.cmd in ("now", "pay") and store.running_challenge_pid():
+        sys.exit("A challenge window is already open. Finish it, or close it with: workout stop")
+
+    if args.cmd == "stop":
+        pid = store.running_challenge_pid()
+        if pid is None:
+            print("No challenge running.")
+            return
+        import os
+        import signal
+        os.kill(pid, signal.SIGTERM)
+        store.clear_challenge_pid()
+        owed = store.load_state()["debt_reps"]
+        print(f"Challenge window closed. Reps already done are saved"
+              + (f"; {owed} still owed." if owed else "."))
         return
 
     if args.cmd in ("on", "off"):

@@ -39,6 +39,7 @@ def run_challenge(target: int, exercise: str = "pushups", on_rep=None) -> bool:
 
     counter = PushupCounter()
     landmarker = _make_landmarker()
+    store.write_challenge_pid()
     ui.open_window()
     t0 = time.monotonic()
     done = 0
@@ -71,6 +72,7 @@ def run_challenge(target: int, exercise: str = "pushups", on_rep=None) -> bool:
             if cv2.waitKey(1) & 0xFF == ESC or ui.window_closed():
                 return False
     finally:
+        store.clear_challenge_pid()
         landmarker.close()
         cap.release()
         ui.close_window()

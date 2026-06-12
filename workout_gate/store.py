@@ -97,6 +97,26 @@ def record_rep(exercise: str = "pushups") -> None:
     save_stats(stats)
 
 
+def write_challenge_pid() -> None:
+    (data_dir() / "challenge.pid").write_text(str(os.getpid()))
+
+
+def clear_challenge_pid() -> None:
+    (data_dir() / "challenge.pid").unlink(missing_ok=True)
+
+
+def running_challenge_pid() -> int | None:
+    """PID of a live challenge process, or None. Cleans up stale files."""
+    path = data_dir() / "challenge.pid"
+    try:
+        pid = int(path.read_text())
+        os.kill(pid, 0)  # existence check, no signal sent
+        return pid
+    except (OSError, ValueError):
+        path.unlink(missing_ok=True)
+        return None
+
+
 def streak_days(by_day: dict, ref: str | None = None) -> int:
     """Consecutive days with at least one rep, ending today (or yesterday if
     today has none yet — an ongoing streak isn't broken at midnight)."""
