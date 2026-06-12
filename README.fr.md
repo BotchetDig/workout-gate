@@ -86,9 +86,19 @@ quel terminal.
 - `"detached"` : la fenêtre s'ouvre en arrière-plan, le prompt est bloqué avec
   un message ; fais tes pompes puis renvoie-le (↑ + Entrée).
 
-Le hook est limité à ce projet. Pour gater toutes tes sessions Claude Code,
-copie le bloc `hooks` de `.claude/settings.json` dans `~/.claude/settings.json`
-en remplaçant `$CLAUDE_PROJECT_DIR` par le chemin absolu de ce dossier.
+## Installation globale
+
+Par défaut le gate ne s'applique que dans ce dossier. Pour gater **toutes** tes
+sessions Claude Code (et avoir `/workout` partout) :
+
+```bash
+./install.sh --global        # ou : .venv/bin/python -m workout_gate global on
+.venv/bin/python -m workout_gate global off   # pour retirer
+```
+
+Ça ajoute chirurgicalement une entrée de hook dans `~/.claude/settings.json`
+(une sauvegarde de ton fichier d'origine est gardée à côté) et retire
+exactement ça au `off`. Effectif dans les nouvelles sessions.
 
 ## Tests
 

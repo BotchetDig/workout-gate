@@ -16,6 +16,8 @@ def main(argv=None):
     sub.add_parser("stats", help="totals, streak, record, last 7 days")
     sub.add_parser("status", help="show gate state")
     sub.add_parser("ui", help="full-screen interactive dashboard (arrow keys)")
+    p_global = sub.add_parser("global", help="install/remove the gate for ALL Claude Code sessions")
+    p_global.add_argument("action", choices=["on", "off", "status"])
     p_preset = sub.add_parser("preset", help="apply a preset")
     p_preset.add_argument("name", choices=sorted(PRESETS))
     p_set = sub.add_parser("set", help="set freq N | reps MIN MAX | trigger MODE | time MIN | chance PCT")
@@ -50,6 +52,10 @@ def main(argv=None):
     elif args.cmd == "ui":
         from . import tui
         tui.main()
+
+    elif args.cmd == "global":
+        from . import installer
+        print({"on": installer.enable, "off": installer.disable, "status": installer.status}[args.action]())
 
     elif args.cmd == "stats":
         stats = store.load_stats()

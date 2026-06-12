@@ -85,9 +85,19 @@ session; it works from any terminal too.
 - `"detached"`: the window opens in the background, the prompt is blocked with
   a message; do your reps, then resend (↑ + Enter).
 
-The hook is scoped to this project. To gate every Claude Code session, copy the
-`hooks` block from `.claude/settings.json` into `~/.claude/settings.json`,
-replacing `$CLAUDE_PROJECT_DIR` with this folder's absolute path.
+## Global install
+
+By default the gate only fires in this folder. To gate **every** Claude Code
+session on your machine (and get `/workout` everywhere):
+
+```bash
+./install.sh --global        # or: .venv/bin/python -m workout_gate global on
+.venv/bin/python -m workout_gate global off   # to remove
+```
+
+This surgically adds one hook entry to `~/.claude/settings.json` (a backup of
+your original file is kept next to it) and removes exactly that on `off`.
+Takes effect in new sessions.
 
 ## Tests
 

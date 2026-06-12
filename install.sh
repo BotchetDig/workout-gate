@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Workout Gate installer: venv + deps + pose model. Run once after cloning.
+#   ./install.sh            -> gate active in this folder only
+#   ./install.sh --global   -> gate active in ALL your Claude Code sessions
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -19,6 +21,11 @@ fi
 
 echo "==> Running tests..."
 .venv/bin/python -m unittest discover -s tests >/dev/null 2>&1 && echo "    all green"
+
+if [ "${1:-}" = "--global" ]; then
+  echo "==> Installing globally (all Claude Code sessions)..."
+  .venv/bin/python -m workout_gate global on
+fi
 
 cat <<'EOF'
 
