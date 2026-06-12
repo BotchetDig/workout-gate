@@ -15,8 +15,16 @@ git clone <ce-repo> && cd pushup-gate
 ./install.sh
 ```
 
-Ouvre une session Claude Code dans ce dossier — le gate est actif. Sur macOS,
-accorde l'accès caméra à ton terminal au premier défi.
+L'installeur prépare tout (venv, dépendances, modèle de pose) puis te guide
+dans un assistant de 30 secondes : il demande ton max en une série pour
+calibrer les défis sur toi (25–50 % du max), te fait choisir le déclencheur,
+propose l'installation globale, et lance un test caméra de 2 pompes pour que
+le dialogue de permission macOS arrive maintenant — pas au milieu de ton
+premier prompt bloqué.
+
+Relance l'assistant quand tu veux avec `workout setup`. `./install.sh
+--no-setup` pour une installation non interactive avec les défauts (tous les
+15 prompts, 5–10 reps).
 
 ## Usage
 

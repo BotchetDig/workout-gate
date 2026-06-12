@@ -27,12 +27,12 @@ if [ "${1:-}" = "--global" ]; then
   .venv/bin/python -m workout_gate global on
 fi
 
-cat <<'EOF'
+if [ -t 0 ] && [ "${1:-}" != "--no-setup" ]; then
+  .venv/bin/python -m workout_gate setup
+else
+  cat <<'EOF'
 
-Done! Open a Claude Code session in this folder and the gate is live
-(challenge every 15 prompts by default).
-
-Try it now:        .venv/bin/python -m workout_gate now
-From Claude Code:  /workout now | stats | preset demo | off
-First run on macOS: grant camera access to your terminal when asked.
+Done! Defaults: challenge every 15 prompts, 5-10 pushups.
+Run the setup wizard anytime:  .venv/bin/python -m workout_gate setup
 EOF
+fi

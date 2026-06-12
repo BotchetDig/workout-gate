@@ -14,6 +14,7 @@ def main(argv=None):
     sub.add_parser("now", help="force a challenge right now")
     sub.add_parser("pay", help="settle the pending debt (opens the webcam window)")
     sub.add_parser("stop", help="close a running challenge window (progress is saved)")
+    sub.add_parser("setup", help="interactive setup wizard (sizes challenges to your max)")
     sub.add_parser("help", help="show this help")
     sub.add_parser("stats", help="totals, streak, record, last 7 days")
     sub.add_parser("status", help="show gate state")
@@ -34,6 +35,11 @@ def main(argv=None):
 
     if args.cmd == "help":
         parser.print_help()
+        return
+
+    if args.cmd == "setup":
+        from . import setup_wizard
+        setup_wizard.run()
         return
 
     if args.cmd in ("now", "pay") and store.running_challenge_pid():

@@ -15,8 +15,14 @@ git clone <this-repo> && cd pushup-gate
 ./install.sh
 ```
 
-Open a Claude Code session in this folder — the gate is live. On macOS, grant
-camera access to your terminal the first time a challenge opens.
+The installer sets everything up (venv, dependencies, pose model) then walks
+you through a 30-second wizard: it asks your one-set max to size the
+challenges to you (25–50% of it), lets you pick a trigger, offers the global
+install, and runs a 2-pushup camera test so the macOS permission dialog
+happens now — not in the middle of your first gated prompt.
+
+Re-run the wizard anytime with `workout setup`. Use `./install.sh --no-setup`
+for a non-interactive install with defaults (every 15 prompts, 5–10 reps).
 
 ## Usage
 
