@@ -20,6 +20,22 @@ class InstallerTest(unittest.TestCase):
         os.environ["HOME"] = self.old_home
         self.tmp.cleanup()
 
+    def test_enable_installs_launcher(self):
+        installer.enable()
+        launcher = Path(self.tmp.name) / ".local" / "bin" / "workout"
+        self.assertTrue(launcher.exists())
+        self.assertTrue(os.access(launcher, os.X_OK))
+        self.assertIn(str(installer.PYTHON), launcher.read_text())
+        installer.disable()
+        self.assertFalse(launcher.exists())
+
+    def test_disable_keeps_foreign_launcher(self):
+        bin_dir = Path(self.tmp.name) / ".local" / "bin"
+        bin_dir.mkdir(parents=True)
+        (bin_dir / "workout").write_text("#!/bin/sh\necho someone else's tool\n")
+        installer.disable()
+        self.assertTrue((bin_dir / "workout").exists())
+
     def test_enable_creates_hook_and_command(self):
         installer.enable()
         settings = json.loads(self.settings.read_text())

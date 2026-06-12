@@ -39,13 +39,14 @@ Claude Code. Same commands from any terminal:
 ### Dashboard
 
 ```
-! .venv/bin/python -m workout_gate ui
+workout            # after global install — from any terminal, or `! workout` in Claude Code
+./workout          # from this folder without global install
 ```
 
-Full-screen terminal dashboard: arrow keys to navigate every setting
-(left/right to change values), live stats with a 7-day sparkline, and a
-"force a challenge" shortcut. The `!` prefix runs it inside your Claude Code
-session; it works from any terminal too.
+Full-screen terminal dashboard, instant and token-free: arrow keys to navigate
+every setting (left/right to change values), live stats with a 7-day
+sparkline, and a "force a challenge" shortcut. `workout <cmd>` also runs any
+CLI command (`workout stats`, `workout off`, ...).
 
 ### Presets
 

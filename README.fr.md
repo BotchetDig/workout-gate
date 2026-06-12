@@ -39,14 +39,15 @@ Claude Code. Mêmes commandes depuis n'importe quel terminal :
 ### Dashboard
 
 ```
-! .venv/bin/python -m workout_gate ui
+workout            # après install globale — depuis n'importe quel terminal, ou `! workout` dans Claude Code
+./workout          # depuis ce dossier, sans install globale
 ```
 
-Dashboard plein écran dans le terminal : flèches pour naviguer dans tous les
-réglages (gauche/droite pour changer les valeurs), stats en direct avec
-sparkline des 7 derniers jours, et un raccourci « forcer un défi ». Le préfixe
-`!` le lance dans ta session Claude Code ; ça marche aussi depuis n'importe
-quel terminal.
+Dashboard plein écran dans le terminal, instantané et zéro token : flèches
+pour naviguer dans tous les réglages (gauche/droite pour changer les valeurs),
+stats en direct avec sparkline des 7 derniers jours, et un raccourci « forcer
+un défi ». `workout <cmd>` lance aussi n'importe quelle commande CLI
+(`workout stats`, `workout off`, ...).
 
 ### Presets
 

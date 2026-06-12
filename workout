@@ -1,0 +1,4 @@
+#!/bin/sh
+# Workout Gate launcher: `./workout` opens the dashboard, `./workout stats` etc.
+cd "$(dirname "$0")"
+exec .venv/bin/python -m workout_gate "$@"

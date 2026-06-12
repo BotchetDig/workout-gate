@@ -8,7 +8,7 @@ from .trigger import PRESETS, apply_preset
 
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="workout_gate", description="Workout Gate for Claude Code")
-    sub = parser.add_subparsers(dest="cmd", required=True)
+    sub = parser.add_subparsers(dest="cmd")  # no subcommand -> dashboard
     sub.add_parser("on", help="enable the gate")
     sub.add_parser("off", help="disable the gate")
     sub.add_parser("now", help="force a challenge right now")
@@ -24,6 +24,11 @@ def main(argv=None):
     p_set.add_argument("key", choices=["freq", "reps", "trigger", "time", "chance"])
     p_set.add_argument("values", nargs="+")
     args = parser.parse_args(argv)
+
+    if args.cmd in (None, "ui"):
+        from . import tui
+        tui.main()
+        return
 
     if args.cmd in ("on", "off"):
         config = store.load_config()
@@ -48,10 +53,6 @@ def main(argv=None):
         ok = challenge.settle_debt()
         print("Debt paid!" if ok else f"Aborted. {store.load_state()['debt_reps']} reps still owed.")
         sys.exit(0 if ok else 1)
-
-    elif args.cmd == "ui":
-        from . import tui
-        tui.main()
 
     elif args.cmd == "global":
         from . import installer
