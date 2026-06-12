@@ -32,7 +32,20 @@ camera access to your terminal the first time a challenge opens.
 | `/workout time 30` | time-based: at most one challenge per 30 min |
 | `/workout chance 10` | roulette: 10% chance on every prompt |
 
-Same commands from any terminal: `.venv/bin/python -m workout_gate <cmd>`.
+`/workout` with no arguments opens an interactive arrow-key menu right in
+Claude Code. Same commands from any terminal:
+`.venv/bin/python -m workout_gate <cmd>`.
+
+### Dashboard
+
+```
+! .venv/bin/python -m workout_gate ui
+```
+
+Full-screen terminal dashboard: arrow keys to navigate every setting
+(left/right to change values), live stats with a 7-day sparkline, and a
+"force a challenge" shortcut. The `!` prefix runs it inside your Claude Code
+session; it works from any terminal too.
 
 ### Presets
 

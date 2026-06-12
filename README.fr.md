@@ -32,8 +32,21 @@ accorde l'accès caméra à ton terminal au premier défi.
 | `/workout time 30` | temporel : au plus un défi toutes les 30 min |
 | `/workout chance 10` | roulette : 10 % de chance à chaque prompt |
 
-Mêmes commandes depuis n'importe quel terminal :
+`/workout` sans argument ouvre un menu interactif aux flèches directement dans
+Claude Code. Mêmes commandes depuis n'importe quel terminal :
 `.venv/bin/python -m workout_gate <cmd>`.
+
+### Dashboard
+
+```
+! .venv/bin/python -m workout_gate ui
+```
+
+Dashboard plein écran dans le terminal : flèches pour naviguer dans tous les
+réglages (gauche/droite pour changer les valeurs), stats en direct avec
+sparkline des 7 derniers jours, et un raccourci « forcer un défi ». Le préfixe
+`!` le lance dans ta session Claude Code ; ça marche aussi depuis n'importe
+quel terminal.
 
 ### Presets
 

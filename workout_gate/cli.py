@@ -15,6 +15,7 @@ def main(argv=None):
     sub.add_parser("pay", help="settle the pending debt (opens the webcam window)")
     sub.add_parser("stats", help="totals, streak, record, last 7 days")
     sub.add_parser("status", help="show gate state")
+    sub.add_parser("ui", help="full-screen interactive dashboard (arrow keys)")
     p_preset = sub.add_parser("preset", help="apply a preset")
     p_preset.add_argument("name", choices=sorted(PRESETS))
     p_set = sub.add_parser("set", help="set freq N | reps MIN MAX | trigger MODE | time MIN | chance PCT")
@@ -45,6 +46,10 @@ def main(argv=None):
         ok = challenge.settle_debt()
         print("Debt paid!" if ok else f"Aborted. {store.load_state()['debt_reps']} reps still owed.")
         sys.exit(0 if ok else 1)
+
+    elif args.cmd == "ui":
+        from . import tui
+        tui.main()
 
     elif args.cmd == "stats":
         stats = store.load_stats()
