@@ -56,7 +56,7 @@ command — instant, **zero tokens**), or just `workout` from any terminal.
 |---|---|
 | `! workout` | open the dashboard (arrow keys, live stats) in a Terminal window |
 | `! workout now` | force a challenge right now (great for filming) |
-| `! workout stats` | total, today, streak, record, last 7 days |
+| `! workout stats` | per-exercise totals + 7-day chart (arrow keys to switch exercise in a real terminal) |
 | `! workout status` | gate state (counter, debt, settings) |
 | `! workout on` / `off` | enable / disable |
 | `! workout stop` | close a running challenge window |

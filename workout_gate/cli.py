@@ -114,7 +114,8 @@ def main(argv=None):
               f"Active: {', '.join(store.enabled_exercises(config))}")
 
     elif args.cmd == "stats":
-        print(render_stats(store.load_stats(), color=sys.stdout.isatty()))
+        from . import stats_view
+        stats_view.main()
 
     elif args.cmd == "status":
         config, state = store.load_config(), store.load_state()
@@ -174,25 +175,32 @@ def _bar(value: int, maxv: int, width: int = 20) -> str:
     return "█" * filled + "░" * (width - filled)
 
 
+_SPARK = "▁▂▃▄▅▆▇█"
+
+
+def _spark(values) -> str:
+    top = max(values, default=0)
+    if top <= 0:
+        return _SPARK[0] * len(values)
+    return "".join(_SPARK[min(7, int(v / top * 7 + 0.5))] for v in values)
+
+
 def render_stats(stats: dict, color: bool = True) -> str:
     def c(code, s):
         return f"\033[{code}m{s}\033[0m" if color else s
 
-    bold, dim, cyan, green, yellow = "1", "2", "96", "92", "93"
+    bold, dim, cyan, green = "1", "2", "96", "92"
     by_day = stats.get("by_day", {})
     by_ex = stats.get("by_exercise", {})
     total = stats.get("total_reps", 0)
     today = by_day.get(store.today(), 0)
     streak = store.streak_days(by_day)
     record = store.best_day(by_day)
-    days = store.last_days(by_day)
-    day_max = max((n for _, n in days), default=0)
+    dates = [d for d, _ in store.last_days(by_day)]
     ex_max = max(by_ex.values(), default=0)
 
-    L = []
-    L.append("")
-    L.append("  " + c(bold, c(cyan, "🏋  WORKOUT GATE")) + c(dim, "  ·  stats"))
-    L.append("  " + c(dim, "─" * 40))
+    L = ["", "  " + c(bold, c(cyan, "🏋  WORKOUT GATE")) + c(dim, "  ·  stats"),
+         "  " + c(dim, "─" * 40)]
     L.append(f"  {c(dim, 'Total '.ljust(8))}{c(bold, total)} reps")
     L.append(f"  {c(dim, 'Today '.ljust(8))}{c(bold, today)}")
     L.append(f"  {c(dim, 'Streak'.ljust(8))}{c(bold, streak)} day" + ("s" if streak != 1 else "")
@@ -200,17 +208,21 @@ def render_stats(stats: dict, color: bool = True) -> str:
     if record:
         L.append(f"  {c(dim, 'Record'.ljust(8))}{c(bold, record[1])}  {c(dim, _pretty_date(record[0]))}")
 
+    # per-exercise: total bar + its own 7-day sparkline
     if by_ex:
         L.append("")
         for ex, n in by_ex.items():
-            L.append(f"  {ex:<9} {c(green, _bar(n, ex_max))} {c(bold, n)}")
+            spark = _spark([store.day_counts(stats, ex).get(d, 0) for d in dates])
+            L.append(f"  {ex:<9} {c(green, _bar(n, ex_max, 14))} {c(bold, str(n)):>3}   {c(green, spark)}")
 
+    # combined daily history
     L.append("")
-    L.append("  " + c(dim, "Last 7 days"))
-    for d, n in days:
+    L.append("  " + c(dim, "Last 7 days (all)"))
+    day_max = max((by_day.get(d, 0) for d in dates), default=0)
+    for d in dates:
+        n = by_day.get(d, 0)
         bar = c(green, _bar(n, day_max, 18)) if n else c(dim, "░" * 18)
-        count = c(bold, n) if n else c(dim, "0")
-        L.append(f"  {c(dim, _pretty_date(d))}  {bar}  {count}")
+        L.append(f"  {c(dim, _pretty_date(d))}  {bar}  {c(bold, n) if n else c(dim, '0')}")
     L.append("")
     return "\n".join(L)
 

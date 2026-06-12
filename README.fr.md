@@ -60,7 +60,7 @@ n'importe quel terminal.
 |---|---|
 | `! workout` | ouvre le dashboard (flèches, stats live) dans une fenêtre Terminal |
 | `! workout now` | forcer un défi tout de suite (parfait pour filmer) |
-| `! workout stats` | total, aujourd'hui, série, record, 7 derniers jours |
+| `! workout stats` | totaux par exercice + histo 7 jours (flèches pour changer d'exo dans un vrai terminal) |
 | `! workout status` | état du gate (compteur, dette, réglages) |
 | `! workout on` / `off` | activer / désactiver |
 | `! workout stop` | fermer un défi en cours |

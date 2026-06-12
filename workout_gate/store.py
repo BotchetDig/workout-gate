@@ -37,8 +37,9 @@ DEFAULT_STATE = {
 
 DEFAULT_STATS = {
     "total_reps": 0,
-    "by_day": {},
-    "by_exercise": {},
+    "by_day": {},          # date -> total reps that day (all exercises)
+    "by_exercise": {},     # exercise -> lifetime total
+    "by_day_ex": {},       # date -> {exercise -> reps that day}
 }
 
 
@@ -136,7 +137,18 @@ def record_rep(exercise: str = "pushups") -> None:
     stats["total_reps"] += 1
     stats["by_day"][today()] = stats["by_day"].get(today(), 0) + 1
     stats["by_exercise"][exercise] = stats["by_exercise"].get(exercise, 0) + 1
+    day_ex = stats.setdefault("by_day_ex", {}).setdefault(today(), {})
+    day_ex[exercise] = day_ex.get(exercise, 0) + 1
     save_stats(stats)
+
+
+def day_counts(stats: dict, exercise: str | None = None) -> dict:
+    """date -> reps. exercise=None gives the combined daily totals; a name
+    gives that exercise's daily counts (only from when per-exercise tracking
+    began)."""
+    if exercise is None:
+        return stats.get("by_day", {})
+    return {d: exs.get(exercise, 0) for d, exs in stats.get("by_day_ex", {}).items()}
 
 
 def write_challenge_pid() -> None:
