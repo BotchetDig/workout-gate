@@ -1,0 +1,8 @@
+{
+  "name": "workout-gate",
+  "description": "Pushups before prompts: a webcam-counted physical challenge gates your Claude Code prompts. Dodge it and the debt follows you.",
+  "version": "1.0.0",
+  "author": {
+    "name": "CHANGE-ME"
+  }
+}

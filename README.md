@@ -8,13 +8,27 @@ the session to dodge it? The debt is waiting for you next time.
 
 *Version française : [README.fr.md](README.fr.md)*
 
-## Install (one line)
+## Install
+
+### As a Claude Code plugin (recommended)
+
+```
+/plugin marketplace add CHANGE-ME/pushup-gate
+/plugin install workout-gate@pushup-gate
+```
+
+Start a new session: onboarding pops up in a Terminal window on its own —
+dependencies install, then a 30-second wizard (your max, trigger choice, a
+2-pushup camera test). Until setup is done, prompts pass freely. The gate and
+`/workout-gate:workout` then work in every session, and plugin updates never
+break the install (the runtime lives in `~/.workout-gate/`).
+
+### One line, without the plugin
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/CHANGE-ME/pushup-gate/main/get.sh | bash
 ```
 
-It installs into `~/.workout-gate/app` and walks you through the setup wizard.
 Re-running the same line updates the install. Prefer to look around first?
 
 ```bash

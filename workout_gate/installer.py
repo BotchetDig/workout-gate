@@ -9,9 +9,10 @@ import json
 import os
 from pathlib import Path
 
-PROJECT_DIR = Path(__file__).resolve().parent.parent
+from .paths import PROJECT_DIR, python_bin
+
 GATE = PROJECT_DIR / "hooks" / "gate.py"
-PYTHON = PROJECT_DIR / ".venv" / "bin" / "python"
+COMMAND_MARKER = "installed by workout-gate"
 
 
 def _claude_dir() -> Path:
@@ -37,11 +38,12 @@ def _launcher_path() -> Path:
 
 
 def _hook_command() -> str:
-    return f'"{PYTHON}" "{GATE}"'
+    return f'"{PROJECT_DIR / "hooks" / "gate.sh"}"'
 
 
 def _is_ours(entry: dict) -> bool:
-    return any(str(GATE) in h.get("command", "") or "pushup-gate/hooks/gate.py" in h.get("command", "")
+    needles = (str(GATE), str(PROJECT_DIR / "hooks" / "gate.sh"), "pushup-gate/hooks/gate.")
+    return any(any(n in h.get("command", "") for n in needles)
                for h in entry.get("hooks", []))
 
 
@@ -99,7 +101,7 @@ def disable() -> str:
             settings.pop("hooks", None)
         _write_settings(settings)
     cmd = _command_path()
-    if cmd.exists() and str(PROJECT_DIR) in cmd.read_text():
+    if cmd.exists() and COMMAND_MARKER in cmd.read_text():
         cmd.unlink()
     launcher = _launcher_path()
     if launcher.exists() and str(PROJECT_DIR) in launcher.read_text():
@@ -108,9 +110,18 @@ def disable() -> str:
 
 
 def _install_launcher() -> Path:
-    """A 'workout' command on PATH: no args = dashboard, otherwise the CLI."""
+    """A 'workout' command on PATH: no args = dashboard, otherwise the CLI.
+    Resolves the app dir at runtime (~/.workout-gate/app-path, written by the
+    plugin's SessionStart hook) so it survives plugin-cache updates; falls
+    back to where this code lives now."""
     path = _launcher_path()
-    path.write_text(f'#!/bin/sh\nexec "{PYTHON}" -m workout_gate "$@"\n')
+    path.write_text(f"""#!/bin/sh
+APP="$(cat "$HOME/.workout-gate/app-path" 2>/dev/null || true)"
+[ -d "$APP" ] || APP="{PROJECT_DIR}"
+PY="$HOME/.workout-gate/venv/bin/python"
+[ -x "$PY" ] || PY="$APP/.venv/bin/python"
+cd "$APP" && exec "$PY" -m workout_gate "$@"
+""")
     path.chmod(0o755)
     return path
 
@@ -119,8 +130,9 @@ def _install_global_command() -> None:
     """Copy the project /workout command globally, with absolute paths so it
     works from any directory."""
     source = PROJECT_DIR / ".claude" / "commands" / "workout.md"
-    text = source.read_text().replace(".venv/bin/python", str(PYTHON))
+    text = source.read_text().replace(".venv/bin/python", str(python_bin()))
     text = text.replace("with Bash, from the project root, ", "with Bash ")
+    text += f"\n<!-- {COMMAND_MARKER} from {PROJECT_DIR} -->\n"
     target = _command_path()
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(text)

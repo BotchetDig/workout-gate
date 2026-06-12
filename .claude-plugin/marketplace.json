@@ -1,0 +1,13 @@
+{
+  "name": "pushup-gate",
+  "owner": {
+    "name": "CHANGE-ME"
+  },
+  "plugins": [
+    {
+      "name": "workout-gate",
+      "source": "./",
+      "description": "Pushups before prompts: a webcam-counted physical challenge gates your Claude Code prompts."
+    }
+  ]
+}

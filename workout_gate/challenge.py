@@ -3,7 +3,6 @@ debt settlement. Persists progress after every rep so an interruption
 (ESC, window closed, kill) loses nothing."""
 import random
 import time
-from pathlib import Path
 
 import cv2
 import mediapipe as mp
@@ -12,8 +11,8 @@ from mediapipe.tasks.python import vision
 
 from . import store, ui
 from .detector import PushupCounter
+from .paths import model_path
 
-MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "pose_landmarker_full.task"
 ANNOUNCE_SECONDS = 3.0
 VALIDATED_SECONDS = 2.5
 ESC = 27
@@ -21,7 +20,7 @@ ESC = 27
 
 def _make_landmarker():
     options = vision.PoseLandmarkerOptions(
-        base_options=BaseOptions(model_asset_path=str(MODEL_PATH)),
+        base_options=BaseOptions(model_asset_path=str(model_path())),
         running_mode=vision.RunningMode.VIDEO,
         min_pose_detection_confidence=0.5,
         min_tracking_confidence=0.5,

@@ -25,7 +25,9 @@ class InstallerTest(unittest.TestCase):
         launcher = Path(self.tmp.name) / ".local" / "bin" / "workout"
         self.assertTrue(launcher.exists())
         self.assertTrue(os.access(launcher, os.X_OK))
-        self.assertIn(str(installer.PYTHON), launcher.read_text())
+        content = launcher.read_text()
+        self.assertIn(str(installer.PROJECT_DIR), content)
+        self.assertIn(".workout-gate/venv", content)  # runtime venv preferred
         installer.disable()
         self.assertFalse(launcher.exists())
 
@@ -41,10 +43,10 @@ class InstallerTest(unittest.TestCase):
         settings = json.loads(self.settings.read_text())
         entries = settings["hooks"]["UserPromptSubmit"]
         self.assertEqual(len(entries), 1)
-        self.assertIn("gate.py", entries[0]["hooks"][0]["command"])
+        self.assertIn("gate.sh", entries[0]["hooks"][0]["command"])
         self.assertEqual(entries[0]["hooks"][0]["timeout"], 300)
         command = (Path(self.tmp.name) / ".claude" / "commands" / "workout.md").read_text()
-        self.assertIn(str(installer.PYTHON), command)
+        self.assertIn(installer.COMMAND_MARKER, command)
         self.assertNotIn(" .venv/bin/python", command)
         self.assertTrue(installer.is_installed())
 

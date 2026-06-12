@@ -10,6 +10,7 @@ Escape hatches (non-negotiable):
 - any unexpected error -> FAIL OPEN: prompt goes through, error logged to
   ~/.workout-gate/gate.log. A broken webcam must never lock you out.
 """
+import hashlib
 import json
 import os
 import subprocess
@@ -32,6 +33,23 @@ def log(msg: str) -> None:
         pass
 
 
+def duplicate_invocation(payload: dict, window_s: float = 5.0) -> bool:
+    """True if another gate hook already handled this very prompt (the gate
+    can be wired as plugin AND project/global hook at once - count it once)."""
+    raw = f"{payload.get('session_id', '')}:{payload.get('prompt', '')}"
+    key = hashlib.md5(raw.encode()).hexdigest()
+    path = store.data_dir() / "last-gate"
+    now = time.time()
+    try:
+        prev_key, prev_ts = path.read_text().split(" ")
+        if prev_key == key and now - float(prev_ts) < window_s:
+            return True
+    except (OSError, ValueError):
+        pass
+    path.write_text(f"{key} {now}")
+    return False
+
+
 def main() -> int:
     if os.environ.get("WORKOUT_GATE_OFF") == "1":
         return 0
@@ -46,6 +64,9 @@ def main() -> int:
 
     config = store.load_config()
     if not config["enabled"]:
+        return 0
+
+    if duplicate_invocation(payload):
         return 0
 
     state = store.load_state()

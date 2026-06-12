@@ -8,15 +8,29 @@ fermes la session pour esquiver ? La dette t'attend à la suivante.
 
 *English version: [README.md](README.md)*
 
-## Installation (une ligne)
+## Installation
+
+### En plugin Claude Code (recommandé)
+
+```
+/plugin marketplace add CHANGE-ME/pushup-gate
+/plugin install workout-gate@pushup-gate
+```
+
+Démarre une nouvelle session : l'onboarding s'ouvre tout seul dans une fenêtre
+Terminal — installation des dépendances, puis l'assistant de 30 secondes (ton
+max, choix du déclencheur, test caméra de 2 pompes). Tant que le setup n'est
+pas fait, les prompts passent librement. Le gate et `/workout-gate:workout`
+marchent ensuite dans toutes tes sessions, et les mises à jour du plugin ne
+cassent jamais l'installation (le runtime vit dans `~/.workout-gate/`).
+
+### Une ligne, sans le plugin
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/CHANGE-ME/pushup-gate/main/get.sh | bash
 ```
 
-Ça s'installe dans `~/.workout-gate/app` et enchaîne sur l'assistant de
-configuration. Relancer la même ligne met à jour. Tu préfères inspecter
-d'abord ?
+Relancer la même ligne met à jour. Tu préfères inspecter d'abord ?
 
 ```bash
 git clone <ce-repo> && cd pushup-gate

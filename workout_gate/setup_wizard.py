@@ -4,6 +4,7 @@ permission dialog happens now - not in the middle of your first gated prompt.
 
 Run with: workout setup  (also launched by install.sh)
 """
+import os
 import sys
 
 from . import store
@@ -98,9 +99,12 @@ def _run() -> None:
     store.save_config(config)
     print(f"  {GREEN}->{END} saved\n")
 
-    # 3. scope
-    if _ask_yn("Gate ALL your Claude Code sessions (recommended), not just this folder?", True):
-        from . import installer
+    # 3. scope - irrelevant under the plugin (its hooks already fire everywhere)
+    from . import installer
+    if os.environ.get("WORKOUT_GATE_PLUGIN") == "1":
+        launcher = installer._install_launcher()
+        print(f"  {GREEN}->{END} 'workout' command installed ({launcher})\n")
+    elif _ask_yn("Gate ALL your Claude Code sessions (recommended), not just this folder?", True):
         print("  " + installer.enable().replace("\n", "\n  "))
     print()
 
