@@ -6,6 +6,9 @@ Keys: up/down navigate - left/right change value - enter/space activate - q quit
 """
 import curses
 import os
+import subprocess
+import sys
+from pathlib import Path
 
 from . import store
 from .trigger import PRESETS, apply_preset
@@ -149,19 +152,36 @@ def _menu(scr, message=""):
             store.save_config(config)
 
 
+def _no_tty_fallback():
+    """Called from Claude Code's '!' prompt or a pipe: pop the dashboard in a
+    real Terminal window instead (macOS), or explain the alternatives."""
+    wrapper = Path(__file__).resolve().parent.parent / "workout"
+    if sys.platform == "darwin" and wrapper.exists():
+        script = f'tell application "Terminal"\nactivate\ndo script "exec \'{wrapper}\'"\nend tell'
+        try:
+            subprocess.run(["osascript", "-e", script], capture_output=True, timeout=10, check=True)
+            print("Dashboard opened in a new Terminal window.")
+            return
+        except (OSError, subprocess.SubprocessError):
+            pass
+    print("The dashboard needs a real terminal (Terminal, iTerm...).\n"
+          "Quick alternatives that work anywhere:\n"
+          "  workout now      start a challenge\n"
+          "  workout stats    totals, streak, record\n"
+          "  workout status   current settings")
+
+
 def main():
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        _no_tty_fallback()
+        return
     os.environ.setdefault("ESCDELAY", "25")  # snappy ESC
     message = ""
     while True:
         try:
             action = curses.wrapper(_menu, message)
         except curses.error:
-            print("The dashboard needs a real terminal (Terminal, iTerm...) - "
-                  "the '!' prompt in Claude Code can't host it.\n"
-                  "Quick alternatives that work anywhere:\n"
-                  "  workout now      start a challenge\n"
-                  "  workout stats    totals, streak, record\n"
-                  "  workout status   current settings")
+            _no_tty_fallback()
             return
         if action != "challenge":
             return

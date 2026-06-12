@@ -39,13 +39,14 @@ Claude Code. Mêmes commandes depuis n'importe quel terminal :
 ### Dashboard
 
 ```
-workout            # après install globale — depuis un vrai terminal
+workout            # après install globale — depuis n'importe quel terminal
 ./workout          # depuis ce dossier, sans install globale
 ```
 
-(Le dashboard exige un vrai terminal ; le prompt `!` de Claude Code ne peut
-pas héberger curses. `! workout now`, `! workout stats` etc. y marchent très
-bien.)
+Depuis Claude Code, tape `! workout` : le prompt `!` ne pouvant pas héberger
+curses, le dashboard s'ouvre dans une nouvelle fenêtre Terminal (macOS). Un
+seul geste, zéro token. `! workout now`, `! workout stats` etc. s'exécutent
+directement.
 
 Dashboard plein écran dans le terminal, instantané et zéro token : flèches
 pour naviguer dans tous les réglages (gauche/droite pour changer les valeurs),
