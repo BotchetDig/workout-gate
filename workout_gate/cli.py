@@ -23,9 +23,13 @@ def main(argv=None):
     p_global.add_argument("action", choices=["on", "off", "status"])
     p_preset = sub.add_parser("preset", help="apply a preset")
     p_preset.add_argument("name", choices=sorted(PRESETS))
-    p_set = sub.add_parser("set", help="set freq N | reps MIN MAX | trigger MODE | time MIN | chance PCT")
-    p_set.add_argument("key", choices=["freq", "reps", "trigger", "time", "chance"])
+    p_set = sub.add_parser("set", help="freq N | reps [EXERCISE] MIN MAX | trigger M | time MIN | chance PCT | mode choice|random")
+    p_set.add_argument("key", choices=["freq", "reps", "trigger", "time", "chance", "mode"])
     p_set.add_argument("values", nargs="+")
+    p_enable = sub.add_parser("enable", help="enable an exercise")
+    p_enable.add_argument("exercise")
+    p_disable = sub.add_parser("disable", help="disable an exercise")
+    p_disable.add_argument("exercise")
     args = parser.parse_args(argv)
 
     if args.cmd in (None, "ui"):
@@ -68,29 +72,46 @@ def main(argv=None):
     elif args.cmd == "now":
         from . import challenge
         state = store.load_state()
-        reps = state["debt_reps"] or challenge.new_debt()
-        print(f"Challenge: {reps} pushups. Window opening...")
+        if state["debt_reps"] <= 0 and not state.get("debt_offers"):
+            challenge.new_debt()
+        print(f"Challenge: {challenge.pending_summary(store.load_state())}. Window opening...")
         ok = challenge.settle_debt()
-        print("Validated!" if ok else f"Aborted. {store.load_state()['debt_reps']} reps still owed.")
+        print("Validated!" if ok else f"Aborted. {challenge.pending_summary(store.load_state())} still owed.")
         sys.exit(0 if ok else 1)
 
     elif args.cmd == "pay":
         from . import challenge
-        if store.load_state()["debt_reps"] <= 0:
+        st = store.load_state()
+        if st["debt_reps"] <= 0 and not st.get("debt_offers"):
             print("No debt. You're free.")
             return
         ok = challenge.settle_debt()
-        print("Debt paid!" if ok else f"Aborted. {store.load_state()['debt_reps']} reps still owed.")
+        print("Debt paid!" if ok else f"Aborted. {challenge.pending_summary(store.load_state())} still owed.")
         sys.exit(0 if ok else 1)
 
     elif args.cmd == "global":
         from . import installer
         print({"on": installer.enable, "off": installer.disable, "status": installer.status}[args.action]())
 
+    elif args.cmd in ("enable", "disable"):
+        from .detector import EXERCISES
+        config = store.load_config()
+        if args.exercise not in EXERCISES:
+            sys.exit(f"unknown exercise '{args.exercise}'. Known: {', '.join(EXERCISES)}")
+        config["exercises"].setdefault(args.exercise, {"reps_min": 5, "reps_max": 10})
+        config["exercises"][args.exercise]["enabled"] = args.cmd == "enable"
+        config["preset"] = None
+        store.save_config(config)
+        print(f"{args.exercise}: {'enabled' if args.cmd == 'enable' else 'disabled'}. "
+              f"Active: {', '.join(store.enabled_exercises(config))}")
+
     elif args.cmd == "stats":
         stats = store.load_stats()
         by_day = stats["by_day"]
-        print(f"Total pushups: {stats['total_reps']}")
+        print(f"Total reps: {stats['total_reps']}")
+        by_ex = stats.get("by_exercise", {})
+        if by_ex:
+            print("  " + "  ".join(f"{k}: {v}" for k, v in by_ex.items()))
         print(f"Today: {by_day.get(store.today(), 0)}")
         print(f"Streak: {store.streak_days(by_day)} day(s)")
         record = store.best_day(by_day)
@@ -110,8 +131,12 @@ def main(argv=None):
             print(f"Trigger: at most every {config['time_interval_min']} min")
         else:
             print(f"Trigger: roulette, {config['roulette_chance_pct']}% per prompt")
-        print(f"Pending debt: {state['debt_reps']} {state['debt_exercise']}")
-        print(f"Reps range: {config['reps_min']}-{config['reps_max']}, mode: {config['mode']}")
+        from . import challenge
+        print(f"Pending debt: {challenge.pending_summary(state) or 'none'}")
+        for ex in store.enabled_exercises(config):
+            ec = config["exercises"][ex]
+            print(f"  {ex}: {ec['reps_min']}-{ec['reps_max']} reps")
+        print(f"Exercise mode: {config.get('exercise_mode', 'choice')}, gate mode: {config['mode']}")
 
     elif args.cmd == "preset":
         config = apply_preset(store.load_config(), args.name)
@@ -119,54 +144,68 @@ def main(argv=None):
         desc = {
             "chill": "rare and light - everyday use",
             "demo": "challenge on EVERY prompt - filming mode",
-            "hardcore": "every 5 prompts, 15-25 reps - good luck",
+            "hardcore": "every 5 prompts, high reps - good luck",
         }[args.name]
         print(f"Preset '{args.name}' applied: {desc}")
 
     elif args.cmd == "set":
         config = store.load_config()
         try:
-            _apply_setting(config, args.key, args.values)
-        except (ValueError, IndexError):
-            sys.exit("usage: set freq N | set reps MIN MAX | set trigger prompts|time|roulette "
-                     "| set time MINUTES | set chance PERCENT")
-        config["preset"] = None
+            msg = _apply_setting(config, args.key, args.values)
+        except (ValueError, IndexError, KeyError):
+            sys.exit("usage: set freq N | set reps [EXERCISE] MIN MAX | "
+                     "set trigger prompts|time|roulette | set time MINUTES | "
+                     "set chance PERCENT | set mode choice|random")
+        if args.key != "reps":
+            config["preset"] = None
         store.save_config(config)
-        trig = config["trigger"]
-        detail = {"prompts": f"every {config['every_n_prompts']} prompts",
-                  "time": f"every {config['time_interval_min']} min",
-                  "roulette": f"{config['roulette_chance_pct']}% per prompt"}[trig]
-        print(f"trigger: {detail}, reps {config['reps_min']}-{config['reps_max']}")
+        print(msg)
 
 
-def _apply_setting(config, key, values):
+def _apply_setting(config, key, values) -> str:
     if key == "freq":
         n = int(values[0])
         if n < 1:
             raise ValueError
         config["every_n_prompts"] = n
         config["trigger"] = "prompts"
+        return f"trigger: every {n} prompts"
     elif key == "reps":
-        lo, hi = int(values[0]), int(values[1])
-        if not 1 <= lo <= hi:
+        # "reps MIN MAX" -> pushups; "reps EXERCISE MIN MAX" -> that exercise
+        if len(values) == 2:
+            exercise, lo, hi = "pushups", int(values[0]), int(values[1])
+        else:
+            exercise, lo, hi = values[0], int(values[1]), int(values[2])
+        if exercise not in config["exercises"] or not 1 <= lo <= hi:
             raise ValueError
-        config["reps_min"], config["reps_max"] = lo, hi
+        config["exercises"][exercise]["reps_min"] = lo
+        config["exercises"][exercise]["reps_max"] = hi
+        return f"{exercise} reps: {lo}-{hi}"
     elif key == "trigger":
         if values[0] not in ("prompts", "time", "roulette"):
             raise ValueError
         config["trigger"] = values[0]
+        return f"trigger: {values[0]}"
     elif key == "time":
         minutes = int(values[0])
         if minutes < 1:
             raise ValueError
         config["time_interval_min"] = minutes
         config["trigger"] = "time"
+        return f"trigger: at most every {minutes} min"
     elif key == "chance":
         pct = float(values[0])
         if not 0 < pct <= 100:
             raise ValueError
         config["roulette_chance_pct"] = pct
         config["trigger"] = "roulette"
+        return f"trigger: roulette {pct:g}% per prompt"
+    elif key == "mode":
+        if values[0] not in ("choice", "random"):
+            raise ValueError
+        config["exercise_mode"] = values[0]
+        return f"exercise mode: {values[0]}"
+    raise ValueError
 
 
 if __name__ == "__main__":

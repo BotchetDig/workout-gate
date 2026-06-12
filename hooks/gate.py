@@ -80,8 +80,10 @@ def main() -> int:
 
     # Persist the debt BEFORE opening the window: closing everything mid-
     # challenge keeps it owed for the next session.
-    owed = state["debt_reps"] or challenge.new_debt()
-    log(f"challenge triggered: {owed} reps owed (prompt_count={state['prompt_count']})")
+    if state["debt_reps"] <= 0 and not state.get("debt_offers"):
+        challenge.new_debt()
+    owed = challenge.pending_summary(store.load_state())
+    log(f"challenge triggered: {owed} owed (prompt_count={state['prompt_count']})")
 
     if config["mode"] == "detached":
         subprocess.Popen(
@@ -90,18 +92,18 @@ def main() -> int:
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         )
         print(
-            f"WORKOUT GATE: {owed} pushups required. The webcam window is opening - "
+            f"WORKOUT GATE: {owed} required. The webcam window is opening - "
             "do them, then resend your prompt (up arrow + Enter).",
             file=sys.stderr,
         )
         return 2
 
     if challenge.settle_debt():
-        print(f"[workout-gate] The user just did {owed} pushups to send this prompt.")
+        print(f"[workout-gate] The user just did {owed} to send this prompt.")
         return 0
-    remaining = store.load_state()["debt_reps"]
+    remaining = challenge.pending_summary(store.load_state())
     print(
-        f"WORKOUT GATE: challenge aborted, {remaining} pushups still owed. "
+        f"WORKOUT GATE: challenge aborted, {remaining} still owed. "
         "Resend your prompt to retry (or ! workout off, no judgment).",
         file=sys.stderr,
     )

@@ -1,3 +1,4 @@
+import copy
 import unittest
 
 from workout_gate.store import DEFAULT_CONFIG, DEFAULT_STATE, best_day, last_days, streak_days
@@ -5,11 +6,11 @@ from workout_gate.trigger import PRESETS, apply_preset, challenge_due
 
 
 def cfg(**kw):
-    return {**DEFAULT_CONFIG, **kw}
+    return {**copy.deepcopy(DEFAULT_CONFIG), **kw}
 
 
 def state(**kw):
-    return {**DEFAULT_STATE, **kw}
+    return {**copy.deepcopy(DEFAULT_STATE), **kw}
 
 
 class TestChallengeDue(unittest.TestCase):
@@ -43,7 +44,8 @@ class TestPresets(unittest.TestCase):
             config = apply_preset(cfg(), name)
             self.assertEqual(config["preset"], name)
             self.assertEqual(set(config) - set(DEFAULT_CONFIG), set())
-            self.assertLessEqual(config["reps_min"], config["reps_max"])
+            for ec in config["exercises"].values():
+                self.assertLessEqual(ec["reps_min"], ec["reps_max"])
 
     def test_demo_triggers_every_prompt(self):
         config = apply_preset(cfg(), "demo")

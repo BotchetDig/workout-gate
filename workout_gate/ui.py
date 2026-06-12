@@ -3,6 +3,8 @@ big, readable, high contrast. Draws on BGR frames, no detection logic here."""
 import cv2
 import numpy as np
 
+from .detector import EXERCISES
+
 WINDOW = "WORKOUT GATE"
 
 WHITE = (255, 255, 255)
@@ -43,6 +45,24 @@ def _text(frame, text, center_x, y, scale, color, thickness):
     cv2.putText(frame, text, (x, y), FONT, scale, color, thickness, cv2.LINE_AA)
 
 
+def draw_choice(frame, offers):
+    """Pick-your-pain screen: one labelled option per offer, chosen by number
+    key or the exercise's first letter."""
+    h, w = frame.shape[:2]
+    overlay = frame.copy()
+    cv2.rectangle(overlay, (0, 0), (w, h), BLACK, -1)
+    cv2.addWeighted(overlay, 0.5, frame, 0.5, 0, frame)
+    _text(frame, "CHOOSE YOUR PAIN", w // 2, int(h * 0.22), 2.2, WHITE, 5)
+    n = len(offers)
+    for i, off in enumerate(offers):
+        label = EXERCISES.get(off["exercise"], {}).get("label", off["exercise"].upper())
+        y = int(h * (0.45 + 0.16 * i)) if n > 1 else int(h * 0.5)
+        key = off["exercise"][0].upper()
+        _text(frame, f"[{i + 1}/{key}]  {off['reps']} {label}", w // 2, y, 1.8, YELLOW, 4)
+    _text(frame, "press a key to choose", w // 2, int(h * 0.88), 1.0, WHITE, 2)
+    _esc_hint(frame)
+
+
 def draw_announce(frame, exercise: str, target: int, seconds_left: float):
     """Pre-challenge screen: exercise name + countdown to get in position."""
     h, w = frame.shape[:2]
@@ -69,7 +89,8 @@ def draw_hud(frame, exercise: str, count: int, target: int,
         phase = "DOWN" if is_down else "UP"
         _text(frame, phase, w // 2, int(h * 0.60), 1.2, YELLOW if is_down else GREEN, 3)
     else:
-        hint = "GET IN PUSHUP POSITION - PROFILE VIEW" if body_visible else "I CAN'T SEE YOU"
+        cue = EXERCISES.get(exercise, EXERCISES["pushups"])["cue"]
+        hint = cue if body_visible else "I CAN'T SEE YOU"
         _text(frame, hint, w // 2, int(h * 0.60), 1.2, RED, 3)
     # progress bar
     bar_y0, bar_y1 = int(h * 0.90), int(h * 0.96)

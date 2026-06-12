@@ -29,19 +29,35 @@ class TestWizardFlow(unittest.TestCase):
         return out.getvalue()
 
     def test_full_flow_saves_config(self):
+        # pushups max 12, skip squats (0) -> only pushups, no pick question;
+        # time trigger 45 min; no global; no camera test.
         from workout_gate import store
-        self._run_with(["12", "2", "45", "n", "n"])
+        self._run_with(["12", "0", "2", "45", "n", "n"])
         config = store.load_config()
-        self.assertEqual((config["reps_min"], config["reps_max"]), (3, 6))
+        pu = config["exercises"]["pushups"]
+        self.assertEqual((pu["reps_min"], pu["reps_max"]), (3, 6))
+        self.assertTrue(pu["enabled"])
+        self.assertFalse(config["exercises"]["squats"]["enabled"])
         self.assertEqual(config["trigger"], "time")
         self.assertEqual(config["time_interval_min"], 45)
-        self.assertTrue(config["enabled"])
+
+    def test_both_exercises_and_pick_mode(self):
+        # pushups 12, squats 20 -> both on -> pick question (2=random);
+        # prompts trigger default; no global; no camera.
+        from workout_gate import store
+        self._run_with(["12", "20", "2", "1", "", "n", "n"])
+        config = store.load_config()
+        self.assertTrue(config["exercises"]["pushups"]["enabled"])
+        self.assertTrue(config["exercises"]["squats"]["enabled"])
+        self.assertEqual(config["exercise_mode"], "random")
 
     def test_defaults_accepted_with_enter(self):
         from workout_gate import store
-        self._run_with(["", "", "", "n", "n"])  # enter everywhere
+        # pushups, squats, pick, trigger, freq, global, camera
+        self._run_with(["", "", "", "", "", "n", "n"])
         config = store.load_config()
-        self.assertEqual((config["reps_min"], config["reps_max"]), (5, 10))
+        pu = config["exercises"]["pushups"]
+        self.assertEqual((pu["reps_min"], pu["reps_max"]), (5, 10))
         self.assertEqual(config["trigger"], "prompts")
         self.assertEqual(config["every_n_prompts"], 15)
 
@@ -51,8 +67,8 @@ class TestWizardFlow(unittest.TestCase):
 
     def test_invalid_input_reprompts(self):
         from workout_gate import store
-        self._run_with(["abc", "999", "12", "1", "", "n", "n"])
-        self.assertEqual(store.load_config()["reps_min"], 3)
+        self._run_with(["abc", "999", "12", "0", "1", "", "n", "n"])
+        self.assertEqual(store.load_config()["exercises"]["pushups"]["reps_min"], 3)
 
 
 class TestDeriveRepsRange(unittest.TestCase):

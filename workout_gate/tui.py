@@ -17,6 +17,7 @@ from .trigger import PRESETS, apply_preset
 SPARK = "▁▂▃▄▅▆▇█"
 TRIGGERS = ["prompts", "time", "roulette"]
 MODES = ["sync", "detached"]
+EXERCISE_MODES = ["choice", "random"]
 PRESET_CYCLE = [None, "chill", "demo", "hardcore"]
 
 
@@ -24,20 +25,20 @@ def _cycle(options, current, delta):
     return options[(options.index(current) + delta) % len(options)]
 
 
-PRESET_KEYS = {"trigger", "every_n_prompts", "time_interval_min", "roulette_chance_pct",
-               "reps_min", "reps_max"}
-
-
 def _adjust(config, key, delta):
-    """Apply a left/right change to one settings row. Mutates config."""
+    """Apply a left/right change to one settings row. Mutates config.
+    Manual changes clear the active preset (except pure navigation)."""
+    touched_preset = True
     if key == "enabled":
         config["enabled"] = not config["enabled"]
+        touched_preset = False
     elif key == "preset":
         name = _cycle(PRESET_CYCLE, config.get("preset"), delta)
         if name:
             apply_preset(config, name)
         else:
             config["preset"] = None
+        return
     elif key == "trigger":
         config["trigger"] = _cycle(TRIGGERS, config["trigger"], delta)
     elif key == "every_n_prompts":
@@ -46,31 +47,50 @@ def _adjust(config, key, delta):
         config[key] = max(5, min(240, config[key] + 5 * delta))
     elif key == "roulette_chance_pct":
         config[key] = max(5, min(100, config[key] + 5 * delta))
-    elif key == "reps_min":
-        config[key] = max(1, min(config["reps_max"], config[key] + delta))
-    elif key == "reps_max":
-        config[key] = max(config["reps_min"], min(50, config[key] + delta))
     elif key == "mode":
         config["mode"] = _cycle(MODES, config["mode"], delta)
-    if key in PRESET_KEYS:
-        config["preset"] = None  # manual change leaves preset land
+        touched_preset = False
+    elif key == "exercise_mode":
+        config["exercise_mode"] = _cycle(EXERCISE_MODES, config.get("exercise_mode", "choice"), delta)
+        touched_preset = False
+    elif key.startswith("enable:"):
+        ex = key.split(":", 1)[1]
+        config["exercises"][ex]["enabled"] = not config["exercises"][ex].get("enabled")
+        touched_preset = False
+    elif key.startswith("repsmin:"):
+        ex = key.split(":", 1)[1]
+        ec = config["exercises"][ex]
+        ec["reps_min"] = max(1, min(ec["reps_max"], ec["reps_min"] + delta))
+    elif key.startswith("repsmax:"):
+        ex = key.split(":", 1)[1]
+        ec = config["exercises"][ex]
+        ec["reps_max"] = max(ec["reps_min"], min(50, ec["reps_max"] + delta))
+    if touched_preset:
+        config["preset"] = None
 
 
 def _rows(config):
     active = config["trigger"]
-    return [
+    rows = [
         ("Gate", "ON" if config["enabled"] else "OFF", "enabled"),
         ("Preset", config.get("preset") or "-", "preset"),
         ("Trigger", config["trigger"], "trigger"),
         ("  every N prompts", f"{config['every_n_prompts']}" + (" *" if active == "prompts" else ""), "every_n_prompts"),
         ("  time interval", f"{config['time_interval_min']} min" + (" *" if active == "time" else ""), "time_interval_min"),
         ("  roulette chance", f"{config['roulette_chance_pct']:.0f}%" + (" *" if active == "roulette" else ""), "roulette_chance_pct"),
-        ("Reps min", str(config["reps_min"]), "reps_min"),
-        ("Reps max", str(config["reps_max"]), "reps_max"),
-        ("Mode", config["mode"], "mode"),
+        ("Exercise pick", config.get("exercise_mode", "choice"), "exercise_mode"),
+    ]
+    for ex, ec in config["exercises"].items():
+        on = "on " if ec.get("enabled") else "off"
+        rows.append((f"  {ex}", on, f"enable:{ex}"))
+        rows.append((f"    {ex} reps min", str(ec["reps_min"]), f"repsmin:{ex}"))
+        rows.append((f"    {ex} reps max", str(ec["reps_max"]), f"repsmax:{ex}"))
+    rows += [
+        ("Gate mode", config["mode"], "mode"),
         ("Force a challenge now", "", "@challenge"),
         ("Quit", "", "@quit"),
     ]
+    return rows
 
 
 def _sparkline(days):
@@ -93,8 +113,9 @@ def _draw(scr, config, state, selected, message):
     bold, dim = curses.A_BOLD, curses.A_DIM
 
     _put(scr, 0, 2, "WORKOUT GATE", bold)
-    debt = state["debt_reps"]
-    headline = f"debt: {debt} {state['debt_exercise']}" if debt else "no debt"
+    from . import challenge
+    headline = f"debt: {challenge.pending_summary(state)}" if (
+        state.get("debt_reps") or state.get("debt_offers")) else "no debt"
     if config["trigger"] == "prompts":
         headline += f"  -  prompts: {state['prompt_count']}/{config['every_n_prompts']}"
     _put(scr, 0, 16, headline, dim)

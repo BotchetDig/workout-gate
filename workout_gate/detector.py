@@ -1,12 +1,14 @@
-"""Pushup detection from pose landmarks. No UI, no files, no webcam.
+"""Exercise detection from pose landmarks. No UI, no files, no webcam.
 
-Two layers:
-- RepCounter: hysteresis state machine fed elbow angles (unit-testable).
-- PushupCounter: extracts landmarks from a MediaPipe pose result, applies
-  posture guards (profile view, body roughly horizontal), feeds RepCounter.
+Three layers:
+- RepCounter: hysteresis state machine fed joint angles (unit-testable).
+- PushupCounter / SquatCounter: extract landmarks from a MediaPipe pose
+  result, apply posture guards, feed a RepCounter.
+- EXERCISES: registry mapping a name to its counter and on-screen cue, so
+  adding an exercise is one entry here and nothing else changes.
 
-Deliberately dumb and solid: a rep is one full down (elbow < DOWN_ANGLE)
-followed by a full up (elbow > UP_ANGLE), with smoothing to ignore jitter.
+Deliberately dumb and solid: a rep is one full down (joint angle < down)
+followed by a full up (joint angle > up), with smoothing to ignore jitter.
 """
 import math
 from collections import deque
@@ -16,11 +18,16 @@ L_SHOULDER, R_SHOULDER = 11, 12
 L_ELBOW, R_ELBOW = 13, 14
 L_WRIST, R_WRIST = 15, 16
 L_HIP, R_HIP = 23, 24
+L_KNEE, R_KNEE = 25, 26
+L_ANKLE, R_ANKLE = 27, 28
 
 DOWN_ANGLE = 95.0   # elbow angle below this = bottom of the pushup
 UP_ANGLE = 150.0    # elbow angle above this = arms extended
+KNEE_DOWN_ANGLE = 100.0  # knee angle below this = bottom of the squat
+KNEE_UP_ANGLE = 160.0    # knee angle above this = standing
 MIN_VISIBILITY = 0.5
-MAX_TORSO_TILT = 45.0  # degrees from horizontal; lying-ish body required
+MAX_TORSO_TILT = 45.0   # degrees from horizontal; lying-ish body required (pushups)
+MIN_LEG_SPAN = 0.15     # normalized vertical hip->ankle span; upright check (squats)
 SMOOTH_FRAMES = 3
 
 
@@ -108,11 +115,76 @@ class PushupCounter:
 
     @staticmethod
     def _best_side(landmarks):
-        sides = []
-        for ids in ((L_SHOULDER, L_ELBOW, L_WRIST, L_HIP),
-                    (R_SHOULDER, R_ELBOW, R_WRIST, R_HIP)):
-            pts = [landmarks[i] for i in ids]
-            vis = min(p.visibility for p in pts)
-            sides.append((vis, pts))
-        vis, pts = max(sides, key=lambda s: s[0])
-        return pts if vis >= MIN_VISIBILITY else None
+        return _best_side(landmarks,
+                          ((L_SHOULDER, L_ELBOW, L_WRIST, L_HIP),
+                           (R_SHOULDER, R_ELBOW, R_WRIST, R_HIP)))
+
+
+class SquatCounter:
+    """Counts squats from the knee angle (hip-knee-ankle), body upright."""
+
+    def __init__(self):
+        self.reps = RepCounter(down_angle=KNEE_DOWN_ANGLE, up_angle=KNEE_UP_ANGLE)
+        self.body_visible = False
+        self.posture_ok = False
+        self.knee_angle = 180.0
+
+    @property
+    def count(self) -> int:
+        return self.reps.count
+
+    @property
+    def is_down(self) -> bool:
+        return self.reps.is_down
+
+    def update(self, landmarks) -> bool:
+        self.body_visible = False
+        self.posture_ok = False
+        if landmarks is None:
+            return False
+
+        side = _best_side(landmarks,
+                          ((L_HIP, L_KNEE, L_ANKLE), (R_HIP, R_KNEE, R_ANKLE)))
+        if side is None:
+            return False
+        hip, knee, ankle = side
+        self.body_visible = True
+
+        # Guard: standing upright, legs spanning vertically (not lying down).
+        self.posture_ok = (ankle.y - hip.y) > MIN_LEG_SPAN
+        if not self.posture_ok:
+            return False
+
+        self.knee_angle = angle_at(
+            (hip.x, hip.y), (knee.x, knee.y), (ankle.x, ankle.y)
+        )
+        return self.reps.update(self.knee_angle)
+
+
+def _best_side(landmarks, side_ids):
+    """Pick whichever body side the camera sees best (highest min visibility)."""
+    sides = []
+    for ids in side_ids:
+        pts = [landmarks[i] for i in ids]
+        vis = min(p.visibility for p in pts)
+        sides.append((vis, pts))
+    vis, pts = max(sides, key=lambda s: s[0])
+    return pts if vis >= MIN_VISIBILITY else None
+
+
+EXERCISES = {
+    "pushups": {
+        "label": "PUSHUPS",
+        "counter": PushupCounter,
+        "cue": "GET IN PUSHUP POSITION - PROFILE VIEW",
+    },
+    "squats": {
+        "label": "SQUATS",
+        "counter": SquatCounter,
+        "cue": "STAND IN FULL VIEW - SIDE-ON",
+    },
+}
+
+
+def make_counter(exercise: str):
+    return EXERCISES.get(exercise, EXERCISES["pushups"])["counter"]()

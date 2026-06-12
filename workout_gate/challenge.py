@@ -16,7 +16,7 @@ from mediapipe.tasks.python.core.base_options import BaseOptions
 from mediapipe.tasks.python import vision
 
 from . import store, ui
-from .detector import PushupCounter
+from .detector import make_counter
 from .paths import model_path
 
 ANNOUNCE_SECONDS = 3.0
@@ -51,13 +51,13 @@ def _make_landmarker():
     return vision.PoseLandmarker.create_from_options(options)
 
 
-def run_challenge(target: int, exercise: str = "pushups", on_rep=None) -> bool:
-    """Open the webcam window and count reps until target is reached.
-    Calls on_rep(count) after each rep. Returns True if completed,
-    False if aborted (ESC / window closed)."""
-    counter = PushupCounter()
+def run_challenge(offers, chosen=None, on_choice=None, on_rep=None) -> bool:
+    """Open the webcam window. If `chosen` is given (resuming a locked debt),
+    run it straight away; otherwise present `offers` (a list of
+    {"exercise","reps"}) and let the user pick one. Calls on_choice(exercise,
+    reps) once picked and on_rep(exercise) after each rep. Returns True if
+    fully completed, False if aborted (ESC / window closed)."""
     store.write_challenge_pid()
-    done = 0
     with _hush_native_stderr():
         cap = cv2.VideoCapture(0)
         if not cap.isOpened():
@@ -65,8 +65,21 @@ def run_challenge(target: int, exercise: str = "pushups", on_rep=None) -> bool:
             raise RuntimeError("webcam unavailable")
         landmarker = _make_landmarker()
         ui.open_window()
-        t0 = time.monotonic()
         try:
+            if chosen is None:
+                if len(offers) == 1:
+                    chosen = offers[0]
+                else:
+                    chosen = _choice_phase(cap, offers)
+                    if chosen is None:
+                        return False  # aborted before choosing — offers stay owed
+                if on_choice:
+                    on_choice(chosen["exercise"], chosen["reps"])
+
+            exercise, target = chosen["exercise"], chosen["reps"]
+            counter = make_counter(exercise)
+            t0 = time.monotonic()
+            done = 0
             while True:
                 ok, frame = cap.read()
                 if not ok:
@@ -84,7 +97,7 @@ def run_challenge(target: int, exercise: str = "pushups", on_rep=None) -> bool:
                     if counter.update(landmarks):
                         done = counter.count
                         if on_rep:
-                            on_rep(done)
+                            on_rep(exercise)
                     ui.draw_hud(frame, exercise, done, target,
                                 counter.body_visible, counter.posture_ok, counter.is_down)
                     if done >= target:
@@ -101,6 +114,28 @@ def run_challenge(target: int, exercise: str = "pushups", on_rep=None) -> bool:
             ui.close_window()
 
 
+def _choice_phase(cap, offers):
+    """Show the menu and wait for the user to pick. Keys: 1/2... or the
+    exercise's first letter. Returns the chosen offer, or None if aborted."""
+    keymap = {}
+    for i, off in enumerate(offers):
+        keymap[ord(str(i + 1))] = off
+        keymap[ord(off["exercise"][0].lower())] = off
+        keymap[ord(off["exercise"][0].upper())] = off
+    while True:
+        ok, frame = cap.read()
+        if not ok:
+            raise RuntimeError("webcam read failed")
+        frame = cv2.flip(frame, 1)
+        ui.draw_choice(frame, offers)
+        ui.show(frame)
+        k = cv2.waitKey(1) & 0xFF
+        if k == ESC or ui.window_closed():
+            return None
+        if k in keymap:
+            return keymap[k]
+
+
 def _show_validated(cap, last_frame):
     t0 = time.monotonic()
     frame = last_frame
@@ -114,36 +149,63 @@ def _show_validated(cap, last_frame):
             return
 
 
-def new_debt() -> int:
-    """Draw a random rep count from the configured range and persist it as debt."""
+def new_debt() -> list:
+    """Build the challenge offers (one rep count per enabled exercise, drawn
+    from its range) and persist them. In "random" mode a single exercise is
+    pre-picked. Returns the offers list."""
     config = store.load_config()
-    reps = random.randint(config["reps_min"], config["reps_max"])
+    names = store.enabled_exercises(config)
+    if config.get("exercise_mode") == "random":
+        names = [random.choice(names)]
+    offers = []
+    for ex in names:
+        ec = config["exercises"][ex]
+        offers.append({"exercise": ex, "reps": random.randint(ec["reps_min"], ec["reps_max"])})
     state = store.load_state()
-    state["debt_reps"] = reps
-    state["debt_exercise"] = "pushups"
+    state["debt_offers"] = offers
+    state["debt_reps"] = 0
     store.save_state(state)
-    return reps
+    return offers
+
+
+def pending_summary(state: dict) -> str:
+    """Human-readable description of what's owed, for hook messages."""
+    if state.get("debt_reps", 0) > 0:
+        return f"{state['debt_reps']} {state['debt_exercise']}"
+    return " or ".join(f"{o['reps']} {o['exercise']}" for o in state.get("debt_offers", []))
 
 
 def settle_debt() -> bool:
-    """Run a challenge for the currently owed reps. Each completed rep is
-    persisted immediately (debt decremented + stats recorded), so quitting
-    at 4/8 leaves 4 owed and 4 in the stats. Returns True if fully paid."""
+    """Run the pending challenge. Each completed rep is persisted immediately
+    (debt decremented + stats recorded), so quitting at 4/8 leaves 4 owed and
+    4 in the stats. The chosen exercise is locked on first pick, so a resume
+    skips the choice screen. Returns True if fully paid."""
     state = store.load_state()
-    owed = state["debt_reps"]
-    if owed <= 0:
+    if state.get("debt_reps", 0) > 0:  # locked debt, resume directly
+        chosen = {"exercise": state.get("debt_exercise", "pushups"), "reps": state["debt_reps"]}
+        offers = [chosen]
+    elif state.get("debt_offers"):
+        chosen, offers = None, state["debt_offers"]
+    else:
         return True
-    exercise = state.get("debt_exercise", "pushups")
 
-    def on_rep(_count):
+    def on_choice(exercise, reps):
+        st = store.load_state()
+        st["debt_exercise"] = exercise
+        st["debt_reps"] = reps
+        st["debt_offers"] = []
+        store.save_state(st)
+
+    def on_rep(exercise):
         st = store.load_state()
         st["debt_reps"] = max(0, st["debt_reps"] - 1)
         store.save_state(st)
         store.record_rep(exercise)
 
-    if run_challenge(owed, exercise=exercise, on_rep=on_rep):
+    if run_challenge(offers, chosen=chosen, on_choice=on_choice, on_rep=on_rep):
         st = store.load_state()
         st["debt_reps"] = 0
+        st["debt_offers"] = []
         st["prompt_count"] = 0
         st["last_challenge_ts"] = time.time()
         store.save_state(st)

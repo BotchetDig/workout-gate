@@ -62,11 +62,25 @@ class StoreTest(unittest.TestCase):
 
     def test_unknown_keys_preserved_with_new_defaults(self):
         """A config written by an older/newer version keeps defaults for
-        missing keys (forward-compat for V2)."""
+        missing keys (forward-compat)."""
         (Path(self.tmp.name) / "config.json").write_text('{"enabled": false}')
         config = self.store.load_config()
         self.assertFalse(config["enabled"])
-        self.assertEqual(config["reps_min"], 5)
+        self.assertEqual(config["exercises"]["pushups"]["reps_min"], 5)
+
+    def test_legacy_reps_migrate_to_pushups(self):
+        """A pre-squats config with top-level reps_min/reps_max seeds pushups."""
+        (Path(self.tmp.name) / "config.json").write_text('{"reps_min": 7, "reps_max": 12}')
+        config = self.store.load_config()
+        self.assertEqual(config["exercises"]["pushups"]["reps_min"], 7)
+        self.assertEqual(config["exercises"]["pushups"]["reps_max"], 12)
+        self.assertIn("squats", config["exercises"])
+        self.assertNotIn("reps_min", config)  # legacy keys dropped
+
+    def test_load_config_does_not_mutate_defaults(self):
+        c1 = self.store.load_config()
+        c1["exercises"]["pushups"]["reps_min"] = 99
+        self.assertEqual(self.store.DEFAULT_CONFIG["exercises"]["pushups"]["reps_min"], 5)
 
 
 if __name__ == "__main__":

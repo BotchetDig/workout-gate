@@ -2,9 +2,10 @@
 
 > Your AI works hard, so should you.
 
-A Claude Code hook that blocks your prompt until you do your push-ups, counted
-live via webcam. Random reps, session-persistent debt (no closing the tab to
-skip), streak stats, and three trigger modes.
+A Claude Code hook that blocks your prompt until you work out — push-ups or
+squats, counted live via webcam. When a challenge fires you pick your pain
+(say 6 push-ups *or* 9 squats). Random reps, session-persistent debt (no
+closing the tab to skip), streak stats, and three trigger modes.
 
 *Version française : [README.fr.md](README.fr.md)*
 
@@ -60,8 +61,10 @@ command — instant, **zero tokens**), or just `workout` from any terminal.
 | `! workout on` / `off` | enable / disable |
 | `! workout stop` | close a running challenge window |
 | `! workout preset chill\|demo\|hardcore` | see presets below |
+| `! workout enable\|disable squats` | turn an exercise on/off |
+| `! workout set reps squats 8 15` | rep range for one exercise |
+| `! workout set mode choice\|random` | pick the exercise yourself, or at random |
 | `! workout set freq 15` | one challenge every 15 prompts |
-| `! workout set reps 5 10` | random rep count range |
 | `! workout set time 30` | time-based: at most one challenge per 30 min |
 | `! workout set chance 10` | roulette: 10% chance on every prompt |
 
@@ -88,10 +91,12 @@ when you quit.
   draws a random rep count, **persists the debt to disk first**, opens the
   webcam window and freezes your prompt until you're done. Then the prompt
   sends itself. 
-- Detection: MediaPipe Pose, **profile view, on the floor**. One rep = full
-  descent (elbow < 95°) then full extension (elbow > 150°), with smoothing.
-  A posture guard ignores everything unless your body is horizontal — no
-  cheating standing up.
+- Detection: MediaPipe Pose. Push-ups from the elbow angle (**profile view,
+  on the floor**, body horizontal); squats from the knee angle (**stand in
+  full view, side-on**, body upright). One rep = full descent then full
+  extension, with smoothing and a posture guard so you can't cheat.
+- When more than one exercise is enabled, the challenge offers a choice
+  ("pick your pain") — or picks at random in `mode random`.
 - Every rep is written to disk the moment it happens (atomic writes): quit at
   4/8 and you keep 4 in the stats, with 4 still owed next session.
 - Data lives in `~/.workout-gate/`: `config.json`, `state.json`, `stats.json`,
@@ -137,5 +142,5 @@ Takes effect in new sessions.
 
 ## Roadmap (if this takes off)
 
-Squats, sit-ups, jumping jacks — the structure is ready: one exercise = one
-counter in `detector.py`, nothing else to touch.
+Sit-ups, jumping jacks — the structure is ready: one exercise = one entry in
+`detector.EXERCISES` (a counter + an on-screen cue), nothing else to touch.

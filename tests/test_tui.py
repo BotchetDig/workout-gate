@@ -1,3 +1,4 @@
+import copy
 import unittest
 
 from workout_gate.store import DEFAULT_CONFIG
@@ -5,7 +6,7 @@ from workout_gate.tui import _adjust, _cycle, _sparkline
 
 
 def cfg(**kw):
-    return {**DEFAULT_CONFIG, **kw}
+    return {**copy.deepcopy(DEFAULT_CONFIG), **kw}
 
 
 class TestAdjust(unittest.TestCase):
@@ -32,14 +33,27 @@ class TestAdjust(unittest.TestCase):
         self.assertEqual(config["every_n_prompts"], 1)
 
     def test_reps_min_cannot_exceed_max(self):
-        config = cfg(reps_min=10, reps_max=10)
-        _adjust(config, "reps_min", 1)
-        self.assertEqual(config["reps_min"], 10)
+        config = cfg()
+        config["exercises"]["pushups"].update(reps_min=10, reps_max=10)
+        _adjust(config, "repsmin:pushups", 1)
+        self.assertEqual(config["exercises"]["pushups"]["reps_min"], 10)
 
     def test_reps_max_cannot_go_below_min(self):
-        config = cfg(reps_min=5, reps_max=5)
-        _adjust(config, "reps_max", -1)
-        self.assertEqual(config["reps_max"], 5)
+        config = cfg()
+        config["exercises"]["pushups"].update(reps_min=5, reps_max=5)
+        _adjust(config, "repsmax:pushups", -1)
+        self.assertEqual(config["exercises"]["pushups"]["reps_max"], 5)
+
+    def test_toggle_exercise(self):
+        config = cfg()
+        config["exercises"]["squats"]["enabled"] = True
+        _adjust(config, "enable:squats", 1)
+        self.assertFalse(config["exercises"]["squats"]["enabled"])
+
+    def test_exercise_mode_cycles(self):
+        config = cfg(exercise_mode="choice")
+        _adjust(config, "exercise_mode", 1)
+        self.assertEqual(config["exercise_mode"], "random")
 
     def test_trigger_cycles_both_ways(self):
         config = cfg(trigger="prompts")

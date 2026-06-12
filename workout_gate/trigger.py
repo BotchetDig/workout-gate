@@ -13,7 +13,7 @@ import time
 def challenge_due(config: dict, state: dict, now: float | None = None) -> bool:
     """state['prompt_count'] must already include the current prompt.
     May mutate state (time-mode initialization); caller persists it."""
-    if state.get("debt_reps", 0) > 0:
+    if state.get("debt_reps", 0) > 0 or state.get("debt_offers"):
         return True
 
     mode = config.get("trigger", "prompts")
@@ -32,15 +32,24 @@ def challenge_due(config: dict, state: dict, now: float | None = None) -> bool:
 
 PRESETS = {
     # everyday real use: rare, light
-    "chill": {"trigger": "prompts", "every_n_prompts": 25, "reps_min": 3, "reps_max": 6},
+    "chill": {"trigger": "prompts", "every_n_prompts": 25,
+              "reps": {"pushups": (3, 6), "squats": (5, 10)}},
     # filming: every prompt, readable rep counts
-    "demo": {"trigger": "prompts", "every_n_prompts": 1, "reps_min": 5, "reps_max": 8},
+    "demo": {"trigger": "prompts", "every_n_prompts": 1,
+             "reps": {"pushups": (5, 8), "squats": (8, 12)}},
     # for people who want to suffer
-    "hardcore": {"trigger": "prompts", "every_n_prompts": 5, "reps_min": 15, "reps_max": 25},
+    "hardcore": {"trigger": "prompts", "every_n_prompts": 5,
+                 "reps": {"pushups": (15, 25), "squats": (20, 35)}},
 }
 
 
 def apply_preset(config: dict, name: str) -> dict:
-    config.update(PRESETS[name])
+    preset = PRESETS[name]
+    config["trigger"] = preset["trigger"]
+    config["every_n_prompts"] = preset["every_n_prompts"]
+    for ex, (lo, hi) in preset["reps"].items():
+        config["exercises"].setdefault(ex, {"enabled": True})
+        config["exercises"][ex]["reps_min"] = lo
+        config["exercises"][ex]["reps_max"] = hi
     config["preset"] = name
     return config

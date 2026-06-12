@@ -3,7 +3,8 @@ import unittest
 from collections import namedtuple
 
 from workout_gate.detector import (
-    L_ELBOW, L_HIP, L_SHOULDER, L_WRIST, PushupCounter, RepCounter, angle_at,
+    EXERCISES, L_ANKLE, L_ELBOW, L_HIP, L_KNEE, L_SHOULDER, L_WRIST,
+    PushupCounter, RepCounter, SquatCounter, angle_at, make_counter,
 )
 
 Lm = namedtuple("Lm", "x y visibility")
@@ -109,6 +110,67 @@ class TestPushupCounter(unittest.TestCase):
         c = PushupCounter()
         self.assertFalse(c.update(None))
         self.assertFalse(c.body_visible)
+
+
+def make_squat_landmarks(knee_angle, upright=True, visibility=0.9):
+    """Synthetic landmarks for a leg at a given knee angle. Hip and ankle are
+    fixed with a large vertical span (upright); the knee slides forward to
+    realize the angle."""
+    lms = [Lm(0.0, 0.0, 0.0)] * 33
+    if upright:
+        hip, ankle = Lm(0.5, 0.3, visibility), Lm(0.5, 0.7, visibility)
+        if knee_angle >= 179.9:
+            d = 0.0
+        else:
+            c = math.cos(math.radians(knee_angle))
+            d = math.sqrt(0.04 * (1 + c) / (1 - c))
+        knee = Lm(0.5 + d, 0.5, visibility)
+    else:  # lying down (pushup pose): no vertical leg span -> guard fails
+        hip, knee, ankle = (Lm(0.4, 0.5, visibility), Lm(0.5, 0.5, visibility),
+                            Lm(0.6, 0.5, visibility))
+    lms[L_HIP], lms[L_KNEE], lms[L_ANKLE] = hip, knee, ankle
+    return lms
+
+
+class TestSquatCounter(unittest.TestCase):
+    def test_full_rep_upright(self):
+        c = SquatCounter()
+        seq = [175] * 5 + [70] * 5 + [175] * 5
+        completed = sum(1 for a in seq if c.update(make_squat_landmarks(a)))
+        self.assertEqual(completed, 1)
+        self.assertEqual(c.count, 1)
+        self.assertTrue(c.posture_ok)
+
+    def test_shallow_bend_not_counted(self):
+        c = SquatCounter()
+        for a in [175] * 5 + [140] * 5 + [175] * 5:  # 140 never reaches the 100 bottom
+            c.update(make_squat_landmarks(a))
+        self.assertEqual(c.count, 0)
+
+    def test_lying_down_never_counts(self):
+        c = SquatCounter()
+        for a in [175] * 5 + [70] * 5 + [175] * 5:
+            c.update(make_squat_landmarks(a, upright=False))
+        self.assertEqual(c.count, 0)
+        self.assertFalse(c.posture_ok)
+
+    def test_low_visibility_ignored(self):
+        c = SquatCounter()
+        for a in [175] * 5 + [70] * 5 + [175] * 5:
+            c.update(make_squat_landmarks(a, visibility=0.2))
+        self.assertEqual(c.count, 0)
+        self.assertFalse(c.body_visible)
+
+
+class TestRegistry(unittest.TestCase):
+    def test_known_exercises(self):
+        self.assertIn("pushups", EXERCISES)
+        self.assertIn("squats", EXERCISES)
+
+    def test_make_counter(self):
+        self.assertIsInstance(make_counter("pushups"), PushupCounter)
+        self.assertIsInstance(make_counter("squats"), SquatCounter)
+        self.assertIsInstance(make_counter("unknown"), PushupCounter)  # safe fallback
 
 
 if __name__ == "__main__":

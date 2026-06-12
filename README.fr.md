@@ -1,10 +1,11 @@
 # Workout Gate 🏋️
 
-> Ton prompt est bloqué tant que tu n'as pas fait tes pompes devant la webcam.
+> Ton prompt est bloqué tant que tu n'as pas fait ton exercice devant la webcam.
 
 Workout Gate prend tes prompts Claude Code en otage derrière un défi physique :
-des pompes, comptées en direct à la webcam. Pas de pompes, pas de prompt. Tu
-fermes la session pour esquiver ? La dette t'attend à la suivante.
+pompes ou squats, comptés en direct à la webcam. Quand un défi tombe, tu
+choisis ta douleur (genre 6 pompes *ou* 9 squats). Pas d'effort, pas de prompt.
+Tu fermes la session pour esquiver ? La dette t'attend à la suivante.
 
 *English version: [README.md](README.md)*
 
@@ -64,8 +65,10 @@ n'importe quel terminal.
 | `! workout on` / `off` | activer / désactiver |
 | `! workout stop` | fermer un défi en cours |
 | `! workout preset chill\|demo\|hardcore` | voir presets ci-dessous |
+| `! workout enable\|disable squats` | activer/désactiver un exercice |
+| `! workout set reps squats 8 15` | fourchette d'un exercice |
+| `! workout set mode choice\|random` | choisir l'exo soi-même, ou au hasard |
 | `! workout set freq 15` | un défi tous les 15 prompts |
-| `! workout set reps 5 10` | fourchette de pompes tirée au hasard |
 | `! workout set time 30` | temporel : au plus un défi toutes les 30 min |
 | `! workout set chance 10` | roulette : 10 % de chance à chaque prompt |
 
@@ -93,10 +96,12 @@ sortie.
   un nombre de pompes, **persiste la dette sur disque d'abord**, ouvre la
   fenêtre webcam et gèle ton prompt jusqu'à validation. Puis le prompt part
   tout seul.
-- Détection : MediaPipe Pose, **de profil, au sol**. Une rep = descente
-  complète (coude < 95°) puis extension (coude > 150°), avec lissage. Un
-  garde-fou ignore tout si le corps n'est pas à l'horizontale — pas de triche
-  debout.
+- Détection : MediaPipe Pose. Pompes via l'angle du coude (**de profil, au
+  sol**, corps horizontal) ; squats via l'angle du genou (**debout, plein
+  cadre, de côté**, corps vertical). Une rep = descente complète puis
+  extension, avec lissage et garde-fou anti-triche.
+- Quand plusieurs exercices sont actifs, le défi propose un choix (« choisis
+  ta douleur ») — ou tire au hasard en `mode random`.
 - Chaque rep est écrite sur disque à l'instant où elle est faite (écriture
   atomique) : tu coupes à 4/8, tu gardes 4 aux stats et il t'en reste 4 dues.
 - Données dans `~/.workout-gate/` : `config.json`, `state.json`, `stats.json`,
@@ -142,5 +147,6 @@ exactement ça au `off`. Effectif dans les nouvelles sessions.
 
 ## Roadmap (si ça prend)
 
-Squats, abdos, jumping jacks — la structure est prête : un exercice = un
-compteur dans `detector.py`, rien d'autre à toucher.
+Abdos, jumping jacks — la structure est prête : un exercice = une entrée dans
+`detector.EXERCISES` (un compteur + un message à l'écran), rien d'autre à
+toucher.
