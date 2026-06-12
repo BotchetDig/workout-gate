@@ -1,11 +1,14 @@
 """On-screen rendering for the challenge window. Built for video capture:
 big, readable, high contrast. Draws on BGR frames, no detection logic here."""
+import os
+
 import cv2
 import numpy as np
 
 from .detector import EXERCISES
 
 WINDOW = "WORKOUT GATE"
+DEBUG = os.environ.get("WORKOUT_GATE_DEBUG") == "1"
 
 WHITE = (255, 255, 255)
 BLACK = (20, 20, 20)
@@ -81,7 +84,7 @@ def draw_announce(frame, exercise: str, target: int, seconds_left: float):
 
 
 def draw_hud(frame, exercise: str, count: int, target: int,
-             body_visible: bool, posture_ok: bool, is_down: bool):
+             body_visible: bool, posture_ok: bool, is_down: bool, angle: float = None):
     h, w = frame.shape[:2]
     # top banner
     cv2.rectangle(frame, (0, 0), (w, int(h * 0.13)), BLACK, -1)
@@ -104,6 +107,10 @@ def draw_hud(frame, exercise: str, count: int, target: int,
         fill = margin + int((w - 2 * margin) * min(1.0, count / target))
         cv2.rectangle(frame, (margin, bar_y0), (fill, bar_y1), GREEN, -1)
     cv2.rectangle(frame, (margin, bar_y0), (w - margin, bar_y1), WHITE, 2)
+    if DEBUG and angle is not None:
+        dbg = f"angle {angle:.0f}  {'DOWN' if is_down else 'UP'}  vis={int(body_visible)} ok={int(posture_ok)}"
+        cv2.putText(frame, dbg, (12, 30), FONT, 0.7, BLACK, 4, cv2.LINE_AA)
+        cv2.putText(frame, dbg, (12, 30), FONT, 0.7, GREEN, 1, cv2.LINE_AA)
     _esc_hint(frame)
 
 

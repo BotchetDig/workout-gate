@@ -148,6 +148,7 @@ class TestSquatCounter(unittest.TestCase):
         self.assertEqual(c.count, 0)
 
     def test_lying_down_never_counts(self):
+        # ankle level with knee (horizontal body) -> feet-below-knees guard fails
         c = SquatCounter()
         for a in [175] * 5 + [70] * 5 + [175] * 5:
             c.update(make_squat_landmarks(a, upright=False))

@@ -27,8 +27,6 @@ KNEE_DOWN_ANGLE = 100.0  # knee angle below this = bottom of the squat
 KNEE_UP_ANGLE = 160.0    # knee angle above this = standing
 MIN_VISIBILITY = 0.5
 MAX_TORSO_TILT = 45.0   # degrees from horizontal; lying-ish body required (pushups)
-MIN_SHIN_SPAN = 0.05    # normalized vertical knee->ankle span; shin points down
-                        # (true standing AND deep-squatting; false when lying = pushup)
 SMOOTH_FRAMES = 3
 
 
@@ -87,6 +85,10 @@ class PushupCounter:
     @property
     def is_down(self) -> bool:
         return self.reps.is_down
+
+    @property
+    def angle(self) -> float:
+        return self.elbow_angle
 
     def update(self, landmarks) -> bool:
         """landmarks: sequence of objects with .x, .y, .visibility (MediaPipe
@@ -151,11 +153,11 @@ class SquatCounter:
         hip, knee, ankle = side
         self.body_visible = True
 
-        # Guard: shin points downward (ankle below knee). Holds while standing
-        # AND at the bottom of a deep squat - unlike a hip->ankle span, which
-        # collapses when the hips drop and would reject the deepest reps. Fails
-        # for a lying (pushup) body, where the shin is horizontal.
-        self.posture_ok = (ankle.y - knee.y) > MIN_SHIN_SPAN
+        # Guard: feet below knees. True while standing AND at the bottom of any
+        # squat (however deep), with no distance threshold to reject the lowest
+        # frames; false for a lying (pushup) body, where ankle ~ knee. The
+        # down/up hysteresis on the knee angle stops stray counts.
+        self.posture_ok = ankle.y > knee.y
         if not self.posture_ok:
             return False
 
@@ -163,6 +165,10 @@ class SquatCounter:
             (hip.x, hip.y), (knee.x, knee.y), (ankle.x, ankle.y)
         )
         return self.reps.update(self.knee_angle)
+
+    @property
+    def angle(self) -> float:
+        return self.knee_angle
 
 
 def _best_side(landmarks, side_ids):

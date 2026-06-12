@@ -114,7 +114,8 @@ def run_challenge(offers, chosen=None, on_choice=None, on_rep=None) -> bool:
                         if on_rep:
                             on_rep(exercise)
                     ui.draw_hud(frame, exercise, done, target,
-                                counter.body_visible, counter.posture_ok, counter.is_down)
+                                counter.body_visible, counter.posture_ok, counter.is_down,
+                                angle=counter.angle)
                     if done >= target:
                         _show_validated(cap, frame)
                         return True
