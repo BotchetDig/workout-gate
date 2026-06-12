@@ -64,6 +64,7 @@ command — instant, **zero tokens**), or just `workout` from any terminal.
 | `! workout enable\|disable squats` | turn an exercise on/off |
 | `! workout set reps squats 8 15` | rep range for one exercise |
 | `! workout set mode choice\|random` | pick the exercise yourself, or at random |
+| `! workout debug on\|off` | overlay the detected skeleton + live joint angle (handy when adding exercises) |
 | `! workout set freq 15` | one challenge every 15 prompts |
 | `! workout set time 30` | time-based: at most one challenge per 30 min |
 | `! workout set chance 10` | roulette: 10% chance on every prompt |

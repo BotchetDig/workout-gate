@@ -68,6 +68,7 @@ n'importe quel terminal.
 | `! workout enable\|disable squats` | activer/désactiver un exercice |
 | `! workout set reps squats 8 15` | fourchette d'un exercice |
 | `! workout set mode choice\|random` | choisir l'exo soi-même, ou au hasard |
+| `! workout debug on\|off` | affiche le squelette détecté + l'angle en direct (utile pour ajouter des exos) |
 | `! workout set freq 15` | un défi tous les 15 prompts |
 | `! workout set time 30` | temporel : au plus un défi toutes les 30 min |
 | `! workout set chance 10` | roulette : 10 % de chance à chaque prompt |

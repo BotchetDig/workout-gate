@@ -53,6 +53,9 @@ def _adjust(config, key, delta):
     elif key == "exercise_mode":
         config["exercise_mode"] = _cycle(EXERCISE_MODES, config.get("exercise_mode", "choice"), delta)
         touched_preset = False
+    elif key == "debug":
+        config["debug"] = not config.get("debug", False)
+        touched_preset = False
     elif key.startswith("enable:"):
         ex = key.split(":", 1)[1]
         config["exercises"][ex]["enabled"] = not config["exercises"][ex].get("enabled")
@@ -87,6 +90,7 @@ def _rows(config):
         rows.append((f"    {ex} reps max", str(ec["reps_max"]), f"repsmax:{ex}"))
     rows += [
         ("Gate mode", config["mode"], "mode"),
+        ("Debug overlay", "on " if config.get("debug") else "off", "debug"),
         ("Force a challenge now", "", "@challenge"),
         ("Quit", "", "@quit"),
     ]

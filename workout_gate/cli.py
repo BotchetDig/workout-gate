@@ -30,6 +30,8 @@ def main(argv=None):
     p_enable.add_argument("exercise")
     p_disable = sub.add_parser("disable", help="disable an exercise")
     p_disable.add_argument("exercise")
+    p_debug = sub.add_parser("debug", help="overlay the detected skeleton + live angle")
+    p_debug.add_argument("action", choices=["on", "off"])
     args = parser.parse_args(argv)
 
     if args.cmd in (None, "ui"):
@@ -93,6 +95,12 @@ def main(argv=None):
         from . import installer
         print({"on": installer.enable, "off": installer.disable, "status": installer.status}[args.action]())
 
+    elif args.cmd == "debug":
+        config = store.load_config()
+        config["debug"] = args.action == "on"
+        store.save_config(config)
+        print(f"Debug overlay {'ON (skeleton + angle)' if config['debug'] else 'OFF'}.")
+
     elif args.cmd in ("enable", "disable"):
         from .detector import EXERCISES
         config = store.load_config()
@@ -136,7 +144,8 @@ def main(argv=None):
         for ex in store.enabled_exercises(config):
             ec = config["exercises"][ex]
             print(f"  {ex}: {ec['reps_min']}-{ec['reps_max']} reps")
-        print(f"Exercise mode: {config.get('exercise_mode', 'choice')}, gate mode: {config['mode']}")
+        print(f"Exercise mode: {config.get('exercise_mode', 'choice')}, gate mode: {config['mode']}"
+              + ("  [debug overlay ON]" if config.get("debug") else ""))
 
     elif args.cmd == "preset":
         config = apply_preset(store.load_config(), args.name)

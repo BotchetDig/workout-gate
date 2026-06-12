@@ -1,14 +1,21 @@
 """On-screen rendering for the challenge window. Built for video capture:
 big, readable, high contrast. Draws on BGR frames, no detection logic here."""
-import os
-
 import cv2
 import numpy as np
 
 from .detector import EXERCISES
 
 WINDOW = "WORKOUT GATE"
-DEBUG = os.environ.get("WORKOUT_GATE_DEBUG") == "1"
+
+# BlazePose body skeleton (indices into the 33-point pose), face omitted.
+POSE_CONNECTIONS = [
+    (11, 12), (11, 23), (12, 24), (23, 24),          # shoulders + torso
+    (11, 13), (13, 15), (12, 14), (14, 16),          # arms
+    (23, 25), (25, 27), (24, 26), (26, 28),          # legs
+    (27, 29), (27, 31), (29, 31),                    # left foot
+    (28, 30), (28, 32), (30, 32),                    # right foot
+]
+SKELETON_MIN_VIS = 0.3
 
 WHITE = (255, 255, 255)
 BLACK = (20, 20, 20)
@@ -83,8 +90,26 @@ def draw_announce(frame, exercise: str, target: int, seconds_left: float):
     _esc_hint(frame)
 
 
+def draw_skeleton(frame, landmarks):
+    """Overlay the detected pose: green segments, yellow joints. landmarks is a
+    sequence of points with .x/.y normalized and .visibility."""
+    h, w = frame.shape[:2]
+
+    def px(lm):
+        return int(lm.x * w), int(lm.y * h)
+
+    for a, b in POSE_CONNECTIONS:
+        la, lb = landmarks[a], landmarks[b]
+        if la.visibility > SKELETON_MIN_VIS and lb.visibility > SKELETON_MIN_VIS:
+            cv2.line(frame, px(la), px(lb), GREEN, 3, cv2.LINE_AA)
+    for lm in landmarks:
+        if lm.visibility > SKELETON_MIN_VIS:
+            cv2.circle(frame, px(lm), 5, YELLOW, -1, cv2.LINE_AA)
+
+
 def draw_hud(frame, exercise: str, count: int, target: int,
-             body_visible: bool, posture_ok: bool, is_down: bool, angle: float = None):
+             body_visible: bool, posture_ok: bool, is_down: bool,
+             angle: float = None, debug: bool = False):
     h, w = frame.shape[:2]
     # top banner
     cv2.rectangle(frame, (0, 0), (w, int(h * 0.13)), BLACK, -1)
@@ -107,7 +132,7 @@ def draw_hud(frame, exercise: str, count: int, target: int,
         fill = margin + int((w - 2 * margin) * min(1.0, count / target))
         cv2.rectangle(frame, (margin, bar_y0), (fill, bar_y1), GREEN, -1)
     cv2.rectangle(frame, (margin, bar_y0), (w - margin, bar_y1), WHITE, 2)
-    if DEBUG and angle is not None:
+    if debug and angle is not None:
         dbg = f"angle {angle:.0f}  {'DOWN' if is_down else 'UP'}  vis={int(body_visible)} ok={int(posture_ok)}"
         cv2.putText(frame, dbg, (12, 30), FONT, 0.7, BLACK, 4, cv2.LINE_AA)
         cv2.putText(frame, dbg, (12, 30), FONT, 0.7, GREEN, 1, cv2.LINE_AA)

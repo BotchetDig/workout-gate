@@ -55,6 +55,13 @@ class TestAdjust(unittest.TestCase):
         _adjust(config, "exercise_mode", 1)
         self.assertEqual(config["exercise_mode"], "random")
 
+    def test_debug_toggles(self):
+        config = cfg(debug=False)
+        _adjust(config, "debug", 1)
+        self.assertTrue(config["debug"])
+        _adjust(config, "debug", 1)
+        self.assertFalse(config["debug"])
+
     def test_trigger_cycles_both_ways(self):
         config = cfg(trigger="prompts")
         _adjust(config, "trigger", -1)

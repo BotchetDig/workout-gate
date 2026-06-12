@@ -72,6 +72,7 @@ def run_challenge(offers, chosen=None, on_choice=None, on_rep=None) -> bool:
     reps) once picked and on_rep(exercise) after each rep. Returns True if
     fully completed, False if aborted (ESC / window closed)."""
     store.write_challenge_pid()
+    debug = store.load_config().get("debug", False) or os.environ.get("WORKOUT_GATE_DEBUG") == "1"
     with _hush_native_stderr():
         cap = cv2.VideoCapture(0)
         if not cap.isOpened():
@@ -113,9 +114,11 @@ def run_challenge(offers, chosen=None, on_choice=None, on_rep=None) -> bool:
                         done = counter.count
                         if on_rep:
                             on_rep(exercise)
+                    if debug and landmarks is not None:
+                        ui.draw_skeleton(frame, landmarks)
                     ui.draw_hud(frame, exercise, done, target,
                                 counter.body_visible, counter.posture_ok, counter.is_down,
-                                angle=counter.angle)
+                                angle=counter.angle, debug=debug)
                     if done >= target:
                         _show_validated(cap, frame)
                         return True
