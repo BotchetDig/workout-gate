@@ -1,6 +1,6 @@
 import unittest
 
-from workout_gate.cli import _bar, _pretty_date, render_stats
+from workout_gate.cli import _bar, _pretty_date, render_stats, render_statusline
 
 
 class RenderStatsTest(unittest.TestCase):
@@ -29,6 +29,18 @@ class RenderStatsTest(unittest.TestCase):
     def test_pretty_date(self):
         self.assertEqual(_pretty_date("2026-06-12"), "Jun 12")
         self.assertEqual(_pretty_date("2026-01-05"), "Jan  5")
+
+
+class StatuslineTest(unittest.TestCase):
+    def test_today_and_streak(self):
+        out = render_statusline({"total_reps": 36, "by_day": {}}, color=False)
+        self.assertIn("🏋", out)
+
+    def test_no_ansi_when_color_off(self):
+        self.assertNotIn("\033", render_statusline({"total_reps": 5, "by_day": {}}, color=False))
+
+    def test_ansi_when_color_on(self):
+        self.assertIn("\033", render_statusline({"total_reps": 5, "by_day": {}}, color=True))
 
 
 if __name__ == "__main__":

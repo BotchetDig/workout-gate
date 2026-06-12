@@ -18,6 +18,7 @@ def main(argv=None):
     sub.add_parser("help", help="show this help")
     sub.add_parser("stats", help="totals, streak, record, last 7 days")
     sub.add_parser("status", help="show gate state")
+    sub.add_parser("statusline", help="compact one-line segment for a Claude Code statusline")
     sub.add_parser("ui", help="full-screen interactive dashboard (arrow keys)")
     p_global = sub.add_parser("global", help="install/remove the gate for ALL Claude Code sessions")
     p_global.add_argument("action", choices=["on", "off", "status"])
@@ -117,6 +118,10 @@ def main(argv=None):
         from . import stats_view
         stats_view.main()
 
+    elif args.cmd == "statusline":
+        # always emit ANSI: statusline output is rendered, not a TTY
+        print(render_statusline(store.load_stats()), end="")
+
     elif args.cmd == "status":
         config, state = store.load_config(), store.load_state()
         print(f"Gate: {'ON' if config['enabled'] else 'OFF'}"
@@ -183,6 +188,18 @@ def _spark(values) -> str:
     if top <= 0:
         return _SPARK[0] * len(values)
     return "".join(_SPARK[min(7, int(v / top * 7 + 0.5))] for v in values)
+
+
+def render_statusline(stats: dict, color: bool = True) -> str:
+    """Compact segment for a Claude Code statusline: 🏋 today's reps + streak.
+    Self-contained ANSI (warm orange) so it can be appended as-is."""
+    by_day = stats.get("by_day", {})
+    today = by_day.get(store.today(), 0)
+    streak = store.streak_days(by_day)
+    seg = f"🏋 {today}" if today else f"🏋 {stats.get('total_reps', 0)}"
+    if streak > 0:
+        seg += f" 🔥{streak}d"
+    return f"\033[38;5;208m{seg}\033[0m" if color else seg
 
 
 def render_stats(stats: dict, color: bool = True) -> str:

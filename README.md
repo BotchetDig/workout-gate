@@ -141,6 +141,28 @@ Takes effect in new sessions.
 .venv/bin/python -m unittest discover -s tests
 ```
 
+## Statusline segment (optional)
+
+Show your reps right in the Claude Code statusline. `workout statusline` prints
+a compact self-colored segment — `🏋 36 🔥4d` (today's reps + day streak).
+
+Claude Code runs one statusline command (`statusLine` in `settings.json`). If
+you already have a statusline script, append the segment to its output:
+
+```sh
+# near the end of your statusline script, before the final printf
+WG="$HOME/.local/bin/workout"
+[ -x "$WG" ] && wg=$("$WG" statusline 2>/dev/null)
+# ...then add  ${wg:+ $wg}  to your printf
+```
+
+Or, for a statusline that's *only* the workout segment, set in
+`settings.json`:
+
+```json
+"statusLine": { "type": "command", "command": "workout statusline" }
+```
+
 ## Add your own exercise (forking)
 
 Everything routes through one registry, `detector.EXERCISES`. Adding an
