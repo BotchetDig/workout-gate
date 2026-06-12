@@ -102,7 +102,7 @@ def main() -> int:
     remaining = store.load_state()["debt_reps"]
     print(
         f"WORKOUT GATE: challenge aborted, {remaining} pushups still owed. "
-        "Resend your prompt to retry (or /workout off, no judgment).",
+        "Resend your prompt to retry (or ! workout off, no judgment).",
         file=sys.stderr,
     )
     return 2

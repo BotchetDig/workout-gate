@@ -48,37 +48,33 @@ for a non-interactive install with defaults (every 15 prompts, 5–10 reps).
 
 ## Usage
 
-| In Claude Code | Effect |
-|---|---|
-| `/workout` | gate status (counter, debt, settings) |
-| `/workout on` / `off` | enable / disable |
-| `/workout now` | force a challenge right now (great for filming) |
-| `/workout stats` | total, today, streak, record, last 7 days |
-| `/workout preset chill\|demo\|hardcore` | see presets below |
-| `/workout freq 15` | one challenge every 15 prompts |
-| `/workout reps 5 10` | random rep count range |
-| `/workout time 30` | time-based: at most one challenge per 30 min |
-| `/workout chance 10` | roulette: 10% chance on every prompt |
+Drive it with `! workout` from inside Claude Code (the `!` prefix runs a shell
+command — instant, **zero tokens**), or just `workout` from any terminal.
 
-`/workout` with no arguments opens an interactive arrow-key menu right in
-Claude Code. Same commands from any terminal:
-`.venv/bin/python -m workout_gate <cmd>`.
+| Command | Effect |
+|---|---|
+| `! workout` | open the dashboard (arrow keys, live stats) in a Terminal window |
+| `! workout now` | force a challenge right now (great for filming) |
+| `! workout stats` | total, today, streak, record, last 7 days |
+| `! workout status` | gate state (counter, debt, settings) |
+| `! workout on` / `off` | enable / disable |
+| `! workout stop` | close a running challenge window |
+| `! workout preset chill\|demo\|hardcore` | see presets below |
+| `! workout set freq 15` | one challenge every 15 prompts |
+| `! workout set reps 5 10` | random rep count range |
+| `! workout set time 30` | time-based: at most one challenge per 30 min |
+| `! workout set chance 10` | roulette: 10% chance on every prompt |
+
+> There's also a `/workout-gate:workout` slash command, but it routes through
+> Claude and costs tokens — prefer `! workout` for everything above.
 
 ### Dashboard
 
-```
-workout            # after global install — from any terminal
-./workout          # from this folder without global install
-```
-
-From inside Claude Code, type `! workout`: since the `!` prompt can't host
-curses, the dashboard pops up in a new Terminal window (macOS). One keystroke
-chain, zero tokens. `! workout now`, `! workout stats` etc. run inline.
-
-Full-screen terminal dashboard, instant and token-free: arrow keys to navigate
-every setting (left/right to change values), live stats with a 7-day
-sparkline, and a "force a challenge" shortcut. `workout <cmd>` also runs any
-CLI command (`workout stats`, `workout off`, ...).
+`! workout` (or `workout` in a terminal) opens a full-screen dashboard: arrow
+keys to navigate every setting, left/right to change values, live stats with a
+7-day sparkline, and a "force a challenge" shortcut. Since the `!` prompt can't
+host curses, it pops up in a new Terminal window (macOS) that closes itself
+when you quit.
 
 ### Presets
 
@@ -103,8 +99,9 @@ CLI command (`workout stats`, `workout off`, ...).
 
 ## Escape hatches (anti-lockout, by design)
 
-1. `/workout off` — `/workout` prompts are never gated.
-2. `.venv/bin/python -m workout_gate off` from any terminal.
+1. `! workout off` from inside Claude Code — prompts starting with `!` or
+   `/workout` are never gated, so you can always reach this.
+2. `workout off` from any terminal.
 3. `WORKOUT_GATE_OFF=1` env var bypasses everything.
 4. **Fail-open**: no webcam, broken dependency, any crash → your prompt goes
    through and the error lands in `~/.workout-gate/gate.log`. You can never be
@@ -121,11 +118,11 @@ CLI command (`workout stats`, `workout off`, ...).
 ## Global install
 
 By default the gate only fires in this folder. To gate **every** Claude Code
-session on your machine (and get `/workout` everywhere):
+session on your machine (the plugin install does this for you):
 
 ```bash
-./install.sh --global        # or: .venv/bin/python -m workout_gate global on
-.venv/bin/python -m workout_gate global off   # to remove
+./install.sh --global        # or: workout global on
+workout global off           # to remove
 ```
 
 This surgically adds one hook entry to `~/.claude/settings.json` (a backup of

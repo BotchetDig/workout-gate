@@ -51,39 +51,35 @@ Relance l'assistant quand tu veux avec `workout setup`. `./install.sh
 
 ## Usage
 
-| Dans Claude Code | Effet |
-|---|---|
-| `/workout` | état du gate (compteur, dette, réglages) |
-| `/workout on` / `off` | activer / désactiver |
-| `/workout now` | forcer un défi tout de suite (parfait pour filmer) |
-| `/workout stats` | total, aujourd'hui, série, record, 7 derniers jours |
-| `/workout preset chill\|demo\|hardcore` | voir presets ci-dessous |
-| `/workout freq 15` | un défi tous les 15 prompts |
-| `/workout reps 5 10` | fourchette de pompes tirée au hasard |
-| `/workout time 30` | temporel : au plus un défi toutes les 30 min |
-| `/workout chance 10` | roulette : 10 % de chance à chaque prompt |
+Pilote-le avec `! workout` depuis Claude Code (le préfixe `!` lance une
+commande shell — instantané, **zéro token**), ou juste `workout` depuis
+n'importe quel terminal.
 
-`/workout` sans argument ouvre un menu interactif aux flèches directement dans
-Claude Code. Mêmes commandes depuis n'importe quel terminal :
-`.venv/bin/python -m workout_gate <cmd>`.
+| Commande | Effet |
+|---|---|
+| `! workout` | ouvre le dashboard (flèches, stats live) dans une fenêtre Terminal |
+| `! workout now` | forcer un défi tout de suite (parfait pour filmer) |
+| `! workout stats` | total, aujourd'hui, série, record, 7 derniers jours |
+| `! workout status` | état du gate (compteur, dette, réglages) |
+| `! workout on` / `off` | activer / désactiver |
+| `! workout stop` | fermer un défi en cours |
+| `! workout preset chill\|demo\|hardcore` | voir presets ci-dessous |
+| `! workout set freq 15` | un défi tous les 15 prompts |
+| `! workout set reps 5 10` | fourchette de pompes tirée au hasard |
+| `! workout set time 30` | temporel : au plus un défi toutes les 30 min |
+| `! workout set chance 10` | roulette : 10 % de chance à chaque prompt |
+
+> Une slash command `/workout-gate:workout` existe aussi, mais elle passe par
+> Claude et consomme des tokens — préfère `! workout` pour tout ce qui précède.
 
 ### Dashboard
 
-```
-workout            # après install globale — depuis n'importe quel terminal
-./workout          # depuis ce dossier, sans install globale
-```
-
-Depuis Claude Code, tape `! workout` : le prompt `!` ne pouvant pas héberger
-curses, le dashboard s'ouvre dans une nouvelle fenêtre Terminal (macOS). Un
-seul geste, zéro token. `! workout now`, `! workout stats` etc. s'exécutent
-directement.
-
-Dashboard plein écran dans le terminal, instantané et zéro token : flèches
-pour naviguer dans tous les réglages (gauche/droite pour changer les valeurs),
-stats en direct avec sparkline des 7 derniers jours, et un raccourci « forcer
-un défi ». `workout <cmd>` lance aussi n'importe quelle commande CLI
-(`workout stats`, `workout off`, ...).
+`! workout` (ou `workout` dans un terminal) ouvre un dashboard plein écran :
+flèches pour naviguer dans tous les réglages, gauche/droite pour changer les
+valeurs, stats en direct avec sparkline des 7 derniers jours, et un raccourci
+« forcer un défi ». Le prompt `!` ne pouvant pas héberger curses, il s'ouvre
+dans une nouvelle fenêtre Terminal (macOS) qui se ferme toute seule à la
+sortie.
 
 ### Presets
 
@@ -108,8 +104,9 @@ un défi ». `workout <cmd>` lance aussi n'importe quelle commande CLI
 
 ## Portes de sortie (anti-lockout, par design)
 
-1. `/workout off` — les prompts `/workout` ne sont jamais bloqués.
-2. `.venv/bin/python -m workout_gate off` depuis n'importe quel terminal.
+1. `! workout off` depuis Claude Code — les prompts commençant par `!` ou
+   `/workout` ne sont jamais bloqués, tu peux donc toujours y accéder.
+2. `workout off` depuis n'importe quel terminal.
 3. `WORKOUT_GATE_OFF=1` dans l'environnement court-circuite tout.
 4. **Fail-open** : pas de webcam, dépendance cassée, crash → le prompt passe et
    l'erreur va dans `~/.workout-gate/gate.log`. Jamais enfermé hors de ton
@@ -126,11 +123,11 @@ un défi ». `workout <cmd>` lance aussi n'importe quelle commande CLI
 ## Installation globale
 
 Par défaut le gate ne s'applique que dans ce dossier. Pour gater **toutes** tes
-sessions Claude Code (et avoir `/workout` partout) :
+sessions Claude Code (l'install plugin le fait pour toi) :
 
 ```bash
-./install.sh --global        # ou : .venv/bin/python -m workout_gate global on
-.venv/bin/python -m workout_gate global off   # pour retirer
+./install.sh --global        # ou : workout global on
+workout global off           # pour retirer
 ```
 
 Ça ajoute chirurgicalement une entrée de hook dans `~/.claude/settings.json`
