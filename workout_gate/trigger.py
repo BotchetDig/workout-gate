@@ -30,26 +30,24 @@ def challenge_due(config: dict, state: dict, now: float | None = None) -> bool:
     return state["prompt_count"] >= config["every_n_prompts"]
 
 
+# Reps are expressed as a multiplier of each exercise's registry default range,
+# so a preset automatically sizes any exercise — including ones added later.
 PRESETS = {
-    # everyday real use: rare, light
-    "chill": {"trigger": "prompts", "every_n_prompts": 25,
-              "reps": {"pushups": (3, 6), "squats": (5, 10)}},
-    # filming: every prompt, readable rep counts
-    "demo": {"trigger": "prompts", "every_n_prompts": 1,
-             "reps": {"pushups": (5, 8), "squats": (8, 12)}},
-    # for people who want to suffer
-    "hardcore": {"trigger": "prompts", "every_n_prompts": 5,
-                 "reps": {"pushups": (15, 25), "squats": (20, 35)}},
+    "chill": {"trigger": "prompts", "every_n_prompts": 25, "reps_mult": 0.6},
+    "demo": {"trigger": "prompts", "every_n_prompts": 1, "reps_mult": 1.0},
+    "hardcore": {"trigger": "prompts", "every_n_prompts": 5, "reps_mult": 2.2},
 }
 
 
 def apply_preset(config: dict, name: str) -> dict:
+    from .detector import EXERCISES
     preset = PRESETS[name]
     config["trigger"] = preset["trigger"]
     config["every_n_prompts"] = preset["every_n_prompts"]
-    for ex, (lo, hi) in preset["reps"].items():
-        config["exercises"].setdefault(ex, {"enabled": True})
-        config["exercises"][ex]["reps_min"] = lo
-        config["exercises"][ex]["reps_max"] = hi
+    mult = preset["reps_mult"]
+    for ex, ec in config["exercises"].items():
+        base = EXERCISES.get(ex, {}).get("default_reps", (ec["reps_min"], ec["reps_max"]))
+        ec["reps_min"] = max(1, round(base[0] * mult))
+        ec["reps_max"] = max(ec["reps_min"], round(base[1] * mult))
     config["preset"] = name
     return config

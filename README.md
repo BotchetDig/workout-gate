@@ -141,7 +141,31 @@ Takes effect in new sessions.
 .venv/bin/python -m unittest discover -s tests
 ```
 
-## Roadmap (if this takes off)
+## Add your own exercise (forking)
 
-Sit-ups, jumping jacks — the structure is ready: one exercise = one entry in
-`detector.EXERCISES` (a counter + an on-screen cue), nothing else to touch.
+Everything routes through one registry, `detector.EXERCISES`. Adding an
+exercise is two steps in `workout_gate/detector.py` and nothing else:
+
+1. **A counter** — subclass `ExerciseCounter`, declare the joint angle to
+   track and the down/up thresholds (override `posture()` to reject bad form):
+
+   ```python
+   class SitupCounter(ExerciseCounter):
+       SIDES = ((L_HIP, L_SHOULDER, L_KNEE), (R_HIP, R_SHOULDER, R_KNEE))
+       DOWN_ANGLE = 55.0   # torso folded
+       UP_ANGLE = 110.0    # lying back
+   ```
+
+2. **A registry entry**:
+
+   ```python
+   "situps": {
+       "label": "SIT-UPS", "counter": SitupCounter,
+       "cue": "LIE DOWN - SIDE-ON",
+       "default_reps": (8, 15), "default_max": 30,
+   },
+   ```
+
+Config defaults, presets, the setup wizard, the dashboard, the choice screen
+and per-exercise stats all read the registry — they pick it up automatically.
+Run the tests (`test_factory.py` proves a new entry flows end-to-end).

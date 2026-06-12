@@ -72,12 +72,14 @@ def _run() -> None:
     print(f"\n{BOLD}WORKOUT GATE SETUP{END}")
     print(f"{DIM}Exercise before prompts. Let's size this to you - 30 seconds.{END}\n")
 
-    # 1. per-exercise challenge size, derived from the user's actual level
+    # 1. per-exercise challenge size, derived from the user's actual level.
+    # Iterates the registry, so new exercises are offered automatically.
+    from .detector import EXERCISES
     print(f"  {DIM}Press Enter to skip an exercise (it stays off).{END}")
-    DEFAULTS = {"pushups": 20, "squats": 30}
     any_on = False
-    for ex in ("pushups", "squats"):
-        mx = _ask_int(f"Max {ex} in one clean set? (0 to skip)", DEFAULTS[ex], 0, 200)
+    for ex, meta in EXERCISES.items():
+        config["exercises"].setdefault(ex, {})
+        mx = _ask_int(f"Max {ex} in one clean set? (0 to skip)", meta.get("default_max", 20), 0, 200)
         if mx <= 0:
             config["exercises"][ex]["enabled"] = False
             continue
@@ -87,8 +89,9 @@ def _run() -> None:
         print(f"  {GREEN}->{END} {ex}: challenges draw {BOLD}{lo}-{hi}{END} "
               f"{DIM}(25-50% of your max){END}")
     if not any_on:  # never leave the user with nothing enabled
-        config["exercises"]["pushups"].update(enabled=True, reps_min=5, reps_max=10)
-        print(f"  {DIM}Nothing picked - keeping pushups on (5-10).{END}")
+        first = next(iter(EXERCISES))
+        config["exercises"][first].update(enabled=True, reps_min=5, reps_max=10)
+        print(f"  {DIM}Nothing picked - keeping {first} on (5-10).{END}")
     print()
     if len([e for e in config["exercises"].values() if e.get("enabled")]) > 1:
         m = _ask_choice("When both apply, how is the exercise picked?", [

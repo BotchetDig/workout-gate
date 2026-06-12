@@ -146,8 +146,33 @@ exactement ça au `off`. Effectif dans les nouvelles sessions.
 .venv/bin/python -m unittest discover -s tests
 ```
 
-## Roadmap (si ça prend)
+## Ajouter ton propre exercice (fork)
 
-Abdos, jumping jacks — la structure est prête : un exercice = une entrée dans
-`detector.EXERCISES` (un compteur + un message à l'écran), rien d'autre à
-toucher.
+Tout passe par un seul registre, `detector.EXERCISES`. Ajouter un exo = deux
+étapes dans `workout_gate/detector.py`, rien d'autre :
+
+1. **Un compteur** — hérite de `ExerciseCounter`, déclare l'angle articulaire
+   suivi et les seuils bas/haut (surcharge `posture()` pour rejeter une
+   mauvaise posture) :
+
+   ```python
+   class SitupCounter(ExerciseCounter):
+       SIDES = ((L_HIP, L_SHOULDER, L_KNEE), (R_HIP, R_SHOULDER, R_KNEE))
+       DOWN_ANGLE = 55.0
+       UP_ANGLE = 110.0
+   ```
+
+2. **Une entrée dans le registre** :
+
+   ```python
+   "situps": {
+       "label": "SIT-UPS", "counter": SitupCounter,
+       "cue": "LIE DOWN - SIDE-ON",
+       "default_reps": (8, 15), "default_max": 30,
+   },
+   ```
+
+Config par défaut, presets, assistant d'install, dashboard, écran de choix et
+stats par exercice lisent tous le registre — ils le prennent en compte
+automatiquement. `test_factory.py` prouve qu'une nouvelle entrée se propage de
+bout en bout.

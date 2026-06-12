@@ -10,17 +10,17 @@ import json
 import os
 from pathlib import Path
 
+from .detector import EXERCISES, default_exercises_config
+
 DEFAULT_CONFIG = {
     "enabled": True,
     "trigger": "prompts",  # "prompts" | "time" | "roulette"
     "every_n_prompts": 15,
     "time_interval_min": 30,
     "roulette_chance_pct": 10,
-    # per-exercise enable + rep range; add an exercise here and in detector.EXERCISES
-    "exercises": {
-        "pushups": {"enabled": True, "reps_min": 5, "reps_max": 10},
-        "squats": {"enabled": True, "reps_min": 8, "reps_max": 15},
-    },
+    # per-exercise enable + rep range, derived from the detector.EXERCISES
+    # registry — add an exercise there and it shows up here automatically.
+    "exercises": default_exercises_config(),
     "exercise_mode": "choice",  # "choice": pick in the window | "random": picked for you
     "debug": False,             # overlay the detected skeleton + live angle/state
     "preset": None,
@@ -71,19 +71,18 @@ def _save(name: str, data: dict) -> None:
 
 def load_config() -> dict:
     config = _load("config.json", DEFAULT_CONFIG)
-    # Migrate legacy top-level reps_min/reps_max (pre-squats) into pushups.
+    defaults = default_exercises_config()
     if "exercises" not in (_raw_config() or {}):
-        config["exercises"] = {
-            "pushups": {"enabled": True,
-                        "reps_min": config.get("reps_min", 5),
-                        "reps_max": config.get("reps_max", 10)},
-            "squats": dict(DEFAULT_CONFIG["exercises"]["squats"]),
-        }
+        # Pre-squats config: seed pushups from legacy top-level reps_min/max.
+        config["exercises"] = defaults
+        if "reps_min" in config:
+            config["exercises"]["pushups"].update(
+                reps_min=config["reps_min"], reps_max=config["reps_max"])
     else:
-        # Fill in any exercise/field added in a newer version.
-        for name, defaults in DEFAULT_CONFIG["exercises"].items():
-            config["exercises"].setdefault(name, dict(defaults))
-            for k, v in defaults.items():
+        # Fill in any exercise/field added in a newer version (new registry entries).
+        for name, d in defaults.items():
+            config["exercises"].setdefault(name, dict(d))
+            for k, v in d.items():
                 config["exercises"][name].setdefault(k, v)
     config.pop("reps_min", None)
     config.pop("reps_max", None)
