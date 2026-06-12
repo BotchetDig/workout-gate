@@ -115,8 +115,12 @@ def _install_launcher() -> Path:
     plugin's SessionStart hook) so it survives plugin-cache updates; falls
     back to where this code lives now."""
     path = _launcher_path()
+    # Resolve the app dir at RUN time, newest plugin-cache version first, so a
+    # reinstall is picked up without waiting for a fresh session to refresh
+    # app-path (stale app-path + lingering old caches = silently old code).
     path.write_text(f"""#!/bin/sh
-APP="$(cat "$HOME/.workout-gate/app-path" 2>/dev/null || true)"
+APP="$(ls -dt "$HOME"/.claude/plugins/cache/*/workout-gate/*/ 2>/dev/null | head -n1)"
+[ -d "$APP" ] || APP="$(cat "$HOME/.workout-gate/app-path" 2>/dev/null || true)"
 [ -d "$APP" ] || APP="{PROJECT_DIR}"
 PY="$HOME/.workout-gate/venv/bin/python"
 [ -x "$PY" ] || PY="$APP/.venv/bin/python"

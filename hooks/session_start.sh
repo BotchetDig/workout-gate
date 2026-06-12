@@ -10,7 +10,10 @@ echo "$ROOT" > "$HOME_DIR/app-path"
 
 PY="$HOME_DIR/venv/bin/python"
 [ -x "$PY" ] || PY="$ROOT/.venv/bin/python"
-[ -x "$PY" ] && exit 0  # already set up: stay silent
+if [ -x "$PY" ]; then  # already set up: refresh the launcher, then stay silent
+    ( cd "$ROOT" && "$PY" -c "from workout_gate import installer; installer._install_launcher()" ) >/dev/null 2>&1 || true
+    exit 0
+fi
 
 FLAG="$HOME_DIR/onboarding-shown"
 [ -f "$FLAG" ] && exit 0  # don't reopen a window every session
