@@ -120,7 +120,7 @@ def run_challenge(offers, chosen=None, on_choice=None, on_rep=None) -> bool:
                                 counter.body_visible, counter.posture_ok, counter.is_down,
                                 angle=counter.angle, debug=debug)
                     if done >= target:
-                        _show_validated(cap, frame)
+                        _show_validated(cap, frame, target)
                         return True
 
                 ui.show(frame)
@@ -155,14 +155,14 @@ def _choice_phase(cap, offers):
             return keymap[k]
 
 
-def _show_validated(cap, last_frame):
+def _show_validated(cap, last_frame, seed=0):
     t0 = time.monotonic()
     frame = last_frame
     while time.monotonic() - t0 < VALIDATED_SECONDS:
         ok, fresh = cap.read()
         if ok:
             frame = cv2.flip(fresh, 1)
-        ui.draw_validated(frame)
+        ui.draw_validated(frame, seed)
         ui.show(frame)
         if cv2.waitKey(1) & 0xFF == ESC:
             return
