@@ -161,6 +161,19 @@ class TestSquatCounter(unittest.TestCase):
         self.assertEqual(c.count, 0)
         self.assertFalse(c.body_visible)
 
+    def test_deep_squat_keeps_posture_ok(self):
+        """At the bottom of a deep squat the hip drops near the ankle; the
+        guard must still pass (regression: the old hip->ankle span rejected
+        it, dropping the deepest frames and missing reps)."""
+        c = SquatCounter()
+        # hip low (near ankle), but ankle still well below knee -> valid squat
+        lms = [Lm(0.0, 0.0, 0.0)] * 33
+        lms[L_HIP] = Lm(0.45, 0.62, 0.9)    # hip dropped low
+        lms[L_KNEE] = Lm(0.60, 0.55, 0.9)   # knee forward & a bit higher
+        lms[L_ANKLE] = Lm(0.50, 0.80, 0.9)  # ankle planted, below knee
+        c.update(lms)
+        self.assertTrue(c.posture_ok)
+
 
 class TestRegistry(unittest.TestCase):
     def test_known_exercises(self):

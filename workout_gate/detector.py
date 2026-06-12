@@ -27,7 +27,8 @@ KNEE_DOWN_ANGLE = 100.0  # knee angle below this = bottom of the squat
 KNEE_UP_ANGLE = 160.0    # knee angle above this = standing
 MIN_VISIBILITY = 0.5
 MAX_TORSO_TILT = 45.0   # degrees from horizontal; lying-ish body required (pushups)
-MIN_LEG_SPAN = 0.15     # normalized vertical hip->ankle span; upright check (squats)
+MIN_SHIN_SPAN = 0.05    # normalized vertical knee->ankle span; shin points down
+                        # (true standing AND deep-squatting; false when lying = pushup)
 SMOOTH_FRAMES = 3
 
 
@@ -150,8 +151,11 @@ class SquatCounter:
         hip, knee, ankle = side
         self.body_visible = True
 
-        # Guard: standing upright, legs spanning vertically (not lying down).
-        self.posture_ok = (ankle.y - hip.y) > MIN_LEG_SPAN
+        # Guard: shin points downward (ankle below knee). Holds while standing
+        # AND at the bottom of a deep squat - unlike a hip->ankle span, which
+        # collapses when the hips drop and would reject the deepest reps. Fails
+        # for a lying (pushup) body, where the shin is horizontal.
+        self.posture_ok = (ankle.y - knee.y) > MIN_SHIN_SPAN
         if not self.posture_ok:
             return False
 
@@ -181,7 +185,7 @@ EXERCISES = {
     "squats": {
         "label": "SQUATS",
         "counter": SquatCounter,
-        "cue": "STAND IN FULL VIEW - SIDE-ON",
+        "cue": "STAND BACK - FULL BODY IN FRAME",
     },
 }
 
