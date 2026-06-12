@@ -41,6 +41,20 @@ def _hush_native_stderr():
         os.close(saved)
 
 
+def _set_tall_capture(cap):
+    """Prefer a 4:3-or-squarer capture mode. The default is 16:9, which is a
+    vertical CROP of the sensor; a taller mode gives more vertical field of
+    view so a standing body (squats) fits without backing up so far - and a
+    square frame films better for vertical/social video. Falls back silently
+    to whatever the camera offers."""
+    for w, h in ((1920, 1440), (1280, 960), (640, 480)):
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
+        aw, ah = cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        if ah and aw / ah <= 1.4:
+            return
+
+
 def _make_landmarker():
     options = vision.PoseLandmarkerOptions(
         base_options=BaseOptions(model_asset_path=str(model_path())),
@@ -63,8 +77,9 @@ def run_challenge(offers, chosen=None, on_choice=None, on_rep=None) -> bool:
         if not cap.isOpened():
             store.clear_challenge_pid()
             raise RuntimeError("webcam unavailable")
+        _set_tall_capture(cap)
         landmarker = _make_landmarker()
-        ui.open_window()
+        ui.open_window(cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         try:
             if chosen is None:
                 if len(offers) == 1:

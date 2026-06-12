@@ -16,9 +16,13 @@ RED = (60, 60, 230)
 FONT = cv2.FONT_HERSHEY_DUPLEX
 
 
-def open_window():
+def open_window(cap_w=1280, cap_h=720):
     cv2.namedWindow(WINDOW, cv2.WINDOW_NORMAL)
-    cv2.resizeWindow(WINDOW, 1280, 720)
+    # match the window to the capture aspect (square/4:3 camera modes), capped
+    # to a sensible on-screen height
+    aspect = (cap_w / cap_h) if cap_h else (1280 / 720)
+    h = 760
+    cv2.resizeWindow(WINDOW, int(h * aspect), h)
     try:
         cv2.setWindowProperty(WINDOW, cv2.WND_PROP_TOPMOST, 1)
     except cv2.error:
