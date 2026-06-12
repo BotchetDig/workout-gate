@@ -17,7 +17,8 @@ skip), streak stats, and three trigger modes.
 /plugin install workout-gate@workout-gate
 ```
 
-Start a new session: onboarding pops up in a Terminal window on its own —
+Then **start a new session** (or run `/reload-plugins`) — nothing happens
+until you do. Onboarding pops up in a Terminal window on its own —
 dependencies install, then a 30-second wizard (your max, trigger choice, a
 2-pushup camera test). Until setup is done, prompts pass freely. The gate and
 `/workout-gate:workout` then work in every session, and plugin updates never

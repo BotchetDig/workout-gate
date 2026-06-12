@@ -118,12 +118,13 @@ def _run() -> None:
         except RuntimeError as e:
             print(f"  {DIM}-> camera unavailable ({e}). Grant camera access to your terminal\n"
                   f"     in System Settings > Privacy > Camera, then run: workout now{END}")
+    slash = "/workout-gate:workout" if os.environ.get("WORKOUT_GATE_PLUGIN") == "1" else "/workout"
     print(f"""
-{BOLD}You're set.{END} Cheat sheet:
+{BOLD}You're set.{END} Cheat sheet (in any terminal, or prefixed with {BOLD}!{END} inside Claude Code):
   workout            dashboard (arrow keys, live stats)
   workout now        force a challenge
   workout stop       close a running challenge
-  workout off        quick disable   {DIM}(also: /workout off in Claude Code,
-                     or WORKOUT_GATE_OFF=1 - you can never be locked out){END}
+  workout off        quick disable   {DIM}(also: {slash} off, or WORKOUT_GATE_OFF=1
+                     - you can never be locked out){END}
   workout setup      re-run this wizard
 """)

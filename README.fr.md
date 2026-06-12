@@ -17,7 +17,8 @@ fermes la session pour esquiver ? La dette t'attend à la suivante.
 /plugin install workout-gate@workout-gate
 ```
 
-Démarre une nouvelle session : l'onboarding s'ouvre tout seul dans une fenêtre
+Puis **démarre une nouvelle session** (ou lance `/reload-plugins`) — rien ne
+se passe avant ça. L'onboarding s'ouvre tout seul dans une fenêtre
 Terminal — installation des dépendances, puis l'assistant de 30 secondes (ton
 max, choix du déclencheur, test caméra de 2 pompes). Tant que le setup n'est
 pas fait, les prompts passent librement. Le gate et `/workout-gate:workout`
