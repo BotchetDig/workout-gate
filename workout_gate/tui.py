@@ -153,7 +153,16 @@ def main():
     os.environ.setdefault("ESCDELAY", "25")  # snappy ESC
     message = ""
     while True:
-        action = curses.wrapper(_menu, message)
+        try:
+            action = curses.wrapper(_menu, message)
+        except curses.error:
+            print("The dashboard needs a real terminal (Terminal, iTerm...) - "
+                  "the '!' prompt in Claude Code can't host it.\n"
+                  "Quick alternatives that work anywhere:\n"
+                  "  workout now      start a challenge\n"
+                  "  workout stats    totals, streak, record\n"
+                  "  workout status   current settings")
+            return
         if action != "challenge":
             return
         # leave curses entirely before opening the webcam window

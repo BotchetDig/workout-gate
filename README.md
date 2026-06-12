@@ -39,9 +39,12 @@ Claude Code. Same commands from any terminal:
 ### Dashboard
 
 ```
-workout            # after global install — from any terminal, or `! workout` in Claude Code
+workout            # after global install — from any real terminal window
 ./workout          # from this folder without global install
 ```
+
+(The dashboard needs a real terminal; Claude Code's `!` prompt can't host
+curses. `! workout now`, `! workout stats` etc. work fine from there.)
 
 Full-screen terminal dashboard, instant and token-free: arrow keys to navigate
 every setting (left/right to change values), live stats with a 7-day
