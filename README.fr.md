@@ -8,7 +8,15 @@ fermes la session pour esquiver ? La dette t'attend à la suivante.
 
 *English version: [README.md](README.md)*
 
-## Installation (30 secondes)
+## Installation (une ligne)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/CHANGE-ME/pushup-gate/main/get.sh | bash
+```
+
+Ça s'installe dans `~/.workout-gate/app` et enchaîne sur l'assistant de
+configuration. Relancer la même ligne met à jour. Tu préfères inspecter
+d'abord ?
 
 ```bash
 git clone <ce-repo> && cd pushup-gate

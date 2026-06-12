@@ -8,7 +8,14 @@ the session to dodge it? The debt is waiting for you next time.
 
 *Version française : [README.fr.md](README.fr.md)*
 
-## Install (30 seconds)
+## Install (one line)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/CHANGE-ME/pushup-gate/main/get.sh | bash
+```
+
+It installs into `~/.workout-gate/app` and walks you through the setup wizard.
+Re-running the same line updates the install. Prefer to look around first?
 
 ```bash
 git clone <this-repo> && cd pushup-gate
