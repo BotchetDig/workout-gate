@@ -277,7 +277,10 @@ PAGE = r"""<!doctype html>
     min-height:100vh;padding:34px 18px 60px}
   .wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
   header{display:flex;align-items:center;gap:16px}
-  .mascot{width:46px;height:42px;flex:none}
+  .mascot{flex:none;margin:0;font-size:9px;line-height:1.05;color:var(--orange);
+    white-space:pre;font-family:"JetBrains Mono",ui-monospace,monospace}
+  .brand{display:flex;flex-direction:column;gap:3px}
+  .taunt{color:var(--dim);font-size:11px;letter-spacing:1.5px;text-transform:uppercase}
   h1{font-size:23px;font-weight:700;letter-spacing:.3px}
   h1 .sub{color:var(--dim);font-weight:500;font-size:15px;margin-left:6px}
   .spacer{flex:1}
@@ -319,9 +322,7 @@ PAGE = r"""<!doctype html>
   .step button:hover{background:#3a3d41}
   .step .val{min-width:64px;text-align:center;font-weight:700;font-size:14px}
   .star{color:var(--orange);margin-left:6px}
-  .exset{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap}
-  .exset .nm{width:100px;font-weight:600}
-  .exset .reps{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:13px}
+  .exhead .reps{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:13px}
   .btn{border:0;border-radius:10px;font:inherit;font-weight:700;cursor:pointer;padding:14px 18px;font-size:15px}
   .btn.go{background:var(--orange);color:#fff;width:100%}
   .btn.go:hover{background:var(--orange2)} .btn.go:disabled{opacity:.5;cursor:default}
@@ -329,58 +330,70 @@ PAGE = r"""<!doctype html>
   .pill.live{color:var(--green)} .pill.debt{color:var(--yellow)}
   .foot{color:var(--dim);font-size:12px;text-align:center;margin-top:4px}
   .foot code{color:var(--orange)}
+  /* tabs */
+  .tabs{display:flex;gap:4px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px}
+  .tab{border:0;background:transparent;color:var(--dim);font:inherit;font-size:14px;font-weight:600;padding:9px 16px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:7px}
+  .tab:hover{color:var(--ink)}
+  .tab.on{background:var(--orange);color:#fff}
+  .tab .dot{width:7px;height:7px;border-radius:50%;background:#4b4f54}
+  .tab .dot.on{background:var(--green)} .tab.on .dot.on{background:#fff}
+  .tabpage{display:flex;flex-direction:column;gap:18px}
+  .tabpage[hidden]{display:none}
+  .cue{color:var(--dim);font-size:12px;letter-spacing:1px;text-transform:uppercase;margin:-4px 0 16px}
+  .exhead{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:18px}
+  .stats.two{grid-template-columns:repeat(2,1fr)}
   @media(max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}}
 </style></head>
 <body><div class="wrap">
   <header>
-    <svg class="mascot" viewBox="0 0 132 118" aria-hidden="true">
-      <rect x="12" y="6" width="108" height="84" rx="12" fill="#c77a5c"/>
-      <rect x="2" y="40" width="12" height="24" rx="3" fill="#c77a5c"/>
-      <rect x="118" y="40" width="12" height="24" rx="3" fill="#c77a5c"/>
-      <rect x="40" y="32" width="15" height="23" rx="2" fill="#15110e"/>
-      <rect x="77" y="32" width="15" height="23" rx="2" fill="#15110e"/>
-      <rect x="24" y="90" width="18" height="22" rx="2" fill="#c77a5c"/>
-      <rect x="57" y="90" width="18" height="22" rx="2" fill="#c77a5c"/>
-      <rect x="90" y="90" width="18" height="22" rx="2" fill="#c77a5c"/>
-    </svg>
-    <h1>Workout Gate <span class="sub">dashboard</span></h1>
+<pre class="mascot" aria-hidden="true"> ◟█████◣
+╔═══════╗
+║ ◘   ◘ ║◯
+║   ▾   ║
+╚══╗ ╔══╝
+   ╨ ╨</pre>
+    <div class="brand">
+      <h1>Workout Gate <span class="sub">dashboard</span></h1>
+      <div class="taunt">drop and give me 20</div>
+    </div>
     <span class="spacer"></span>
     <span id="status-pill" class="pill">…</span>
     <label class="toggle"><span id="gate-label">gate</span>
       <span id="gate-sw" class="sw"></span></label>
   </header>
 
-  <section class="panel">
-    <h2>Stats</h2>
-    <div class="stats">
-      <div class="stat"><div class="n" id="s-total">–</div><div class="l">Total reps</div></div>
-      <div class="stat"><div class="n org" id="s-today">–</div><div class="l">Today</div></div>
-      <div class="stat"><div class="n fire" id="s-streak">–</div><div class="l">Streak 🔥</div></div>
-      <div class="stat"><div class="n" id="s-record">–</div><div class="l">Record</div></div>
-    </div>
-    <div id="ex-bars"></div>
-    <div class="days" id="days"></div>
-  </section>
+  <nav id="tabs" class="tabs"></nav>
 
-  <section class="panel">
-    <h2>Settings</h2>
-    <div class="row"><div class="lbl">Preset</div><div id="preset-seg" class="seg"></div></div>
-    <div class="row"><div class="lbl">Trigger</div><div id="trigger-seg" class="seg"></div></div>
-    <div id="trigger-detail"></div>
-    <div class="row"><div class="lbl">Exercise pick<small>which exercise when several are on</small></div><div id="mode-seg" class="seg"></div></div>
-    <div class="row"><div class="lbl">Debug overlay<small>skeleton + live joint angle</small></div><div id="debug-seg" class="seg"></div></div>
-  </section>
+  <div id="page-overview" class="tabpage">
+    <section class="panel">
+      <h2>Stats</h2>
+      <div class="stats">
+        <div class="stat"><div class="n" id="s-total">–</div><div class="l">Total reps</div></div>
+        <div class="stat"><div class="n org" id="s-today">–</div><div class="l">Today</div></div>
+        <div class="stat"><div class="n fire" id="s-streak">–</div><div class="l">Streak 🔥</div></div>
+        <div class="stat"><div class="n" id="s-record">–</div><div class="l">Record</div></div>
+      </div>
+      <div id="ex-bars"></div>
+      <div class="days" id="days"></div>
+    </section>
 
-  <section class="panel">
-    <h2>Exercises</h2>
-    <div id="exercises"></div>
-  </section>
+    <section class="panel">
+      <h2>Settings</h2>
+      <div class="row"><div class="lbl">Preset</div><div id="preset-seg" class="seg"></div></div>
+      <div class="row"><div class="lbl">Trigger</div><div id="trigger-seg" class="seg"></div></div>
+      <div id="trigger-detail"></div>
+      <div class="row"><div class="lbl">Exercise pick<small>which exercise when several are on</small></div><div id="mode-seg" class="seg"></div></div>
+      <div class="row"><div class="lbl">Debug overlay<small>skeleton + live joint angle</small></div><div id="debug-seg" class="seg"></div></div>
+    </section>
 
-  <section class="panel">
-    <h2>Challenge</h2>
-    <button id="go" class="btn go">▶  Force a challenge now</button>
-    <div class="foot" style="margin-top:12px">opens the native webcam window · or run <code>! workout now</code></div>
-  </section>
+    <section class="panel">
+      <h2>Challenge</h2>
+      <button id="go" class="btn go">▶  Force a challenge now</button>
+      <div class="foot" style="margin-top:12px">opens the native webcam window · or run <code>! workout now</code></div>
+    </section>
+  </div>
+
+  <div id="page-exercise" class="tabpage" hidden></div>
 
   <div class="foot">local dashboard · <code>! workout</code> reopens it · <code>workout tui</code> for the terminal version</div>
 </div>
@@ -411,17 +424,43 @@ function stepper(label, value, unit, onDelta){
     <div class="step"><button data-d="-1">−</button><span class="val">${value}${unit||""}</span><button data-d="1">+</button></div></div>`;
 }
 
+let TAB = "overview";
+
 function render(){
   if(!S) return;
-  // status pill + gate
+  if(TAB!=="overview" && !S.exercises[TAB]) TAB="overview";  // exercise vanished
+  renderHeader();
+  renderTabs();
+  renderOverview();                       // cheap; page may be hidden
+  const onEx = TAB!=="overview";
+  $("#page-overview").hidden = onEx;
+  $("#page-exercise").hidden = !onEx;
+  if(onEx) renderExercise(TAB); else $("#page-exercise").innerHTML="";
+}
+
+function renderHeader(){
   const sp=$("#status-pill");
   if(S.challenge_running){sp.className="pill live";sp.textContent="● challenge open";}
   else if(S.status.debt){sp.className="pill debt";sp.textContent="debt: "+S.status.debt;}
   else {sp.className="pill";sp.textContent=S.trigger==="prompts"?`${S.status.prompt_count}/${S.every_n_prompts} prompts`:S.trigger;}
   $("#gate-sw").className="sw"+(S.enabled?" on":"");
   $("#gate-label").textContent=S.enabled?"gate ON":"gate OFF";
+}
 
-  // stats
+function renderTabs(){
+  const host=$("#tabs"); host.innerHTML="";
+  // overview first, then one tab per exercise — straight from the registry,
+  // so a new exercise (one file in detector.py) shows up here automatically.
+  const tabs=[{key:"overview",label:"overview",enabled:null},
+    ...Object.entries(S.exercises).map(([k,e])=>({key:k,label:e.label.toLowerCase(),enabled:e.enabled}))];
+  tabs.forEach(t=>{const b=document.createElement("button");
+    b.className="tab"+(TAB===t.key?" on":"");
+    if(t.enabled===null) b.textContent=t.label;
+    else b.innerHTML=`<span class="dot${t.enabled?' on':''}"></span>${t.label}`;
+    b.onclick=()=>{TAB=t.key; render();}; host.appendChild(b);});
+}
+
+function renderOverview(){
   $("#s-total").textContent=S.stats.total;
   $("#s-today").textContent=S.stats.today;
   $("#s-streak").textContent=S.stats.streak+"d";
@@ -462,33 +501,45 @@ function render(){
   seg($("#mode-seg"),[{label:"choice",value:"choice"},{label:"random",value:"random"}],S.exercise_mode,v=>post({action:"mode",value:v}));
   seg($("#debug-seg"),[{label:"off",value:false},{label:"on",value:true}],S.debug,v=>post({action:"debug",value:v}));
 
-  // exercises
-  $("#exercises").innerHTML=Object.entries(S.exercises).map(([k,e])=>
-    `<div class="exset" data-ex="${k}">
-       <span class="nm">${e.label.toLowerCase()}</span>
-       <span class="seg" data-en>
-         <button class="${e.enabled?'on':''}" data-v="1">on</button>
-         <button class="${!e.enabled?'on':''}" data-v="0">off</button>
-       </span>
-       <span class="reps">reps
-         <span class="step" data-min><button data-d="-1">−</button><span class="val">${e.reps_min}</span><button data-d="1">+</button></span>
-         –
-         <span class="step" data-max><button data-d="-1">−</button><span class="val">${e.reps_max}</span><button data-d="1">+</button></span>
-       </span>
-     </div>`).join("");
-  $("#exercises").querySelectorAll(".exset").forEach(row=>{
-    const ex=row.dataset.ex, e=S.exercises[ex];
-    row.querySelector("[data-en]").querySelectorAll("button").forEach(b=>
-      b.onclick=()=>post({action:"enable",exercise:ex,value:b.dataset.v==="1"}));
-    row.querySelector("[data-min]").querySelectorAll("button").forEach(b=>
-      b.onclick=()=>post({action:"reps",exercise:ex,min:e.reps_min+(+b.dataset.d),max:e.reps_max}));
-    row.querySelector("[data-max]").querySelectorAll("button").forEach(b=>
-      b.onclick=()=>post({action:"reps",exercise:ex,min:e.reps_min,max:e.reps_max+(+b.dataset.d)}));
-  });
-
-  // gate + challenge buttons
+  // challenge button
   $("#go").disabled=S.challenge_running;
   $("#go").textContent=S.challenge_running?"● challenge window open":"▶  Force a challenge now";
+}
+
+function renderExercise(ex){
+  const e=S.exercises[ex];
+  const today=e.spark.length?e.spark[e.spark.length-1]:0;
+  const dmax=Math.max(0,...e.spark);
+  $("#page-exercise").innerHTML=`
+    <section class="panel">
+      <h2>${e.label.toLowerCase()}</h2>
+      <p class="cue">${e.cue||"&nbsp;"}</p>
+      <div class="exhead">
+        <span class="seg" id="ex-en">
+          <button class="${e.enabled?'on':''}" data-v="1">on</button>
+          <button class="${!e.enabled?'on':''}" data-v="0">off</button>
+        </span>
+        <span class="reps">reps
+          <span class="step" id="ex-min"><button data-d="-1">−</button><span class="val">${e.reps_min}</span><button data-d="1">+</button></span>
+          –
+          <span class="step" id="ex-max"><button data-d="-1">−</button><span class="val">${e.reps_max}</span><button data-d="1">+</button></span>
+        </span>
+      </div>
+      <div class="stats two">
+        <div class="stat"><div class="n">${e.total}</div><div class="l">Total reps</div></div>
+        <div class="stat"><div class="n org">${today}</div><div class="l">Today</div></div>
+      </div>
+      <div class="days" style="margin-top:18px">${S.stats.last7.map((d,i)=>
+        `<div class="day"><span class="d">${prettyDate(d.date)}</span>
+          <span class="b"><i style="width:${dmax?Math.round((e.spark[i]||0)/dmax*100):0}%"></i></span>
+          <span class="v">${e.spark[i]||0}</span></div>`).join("")}</div>
+    </section>`;
+  $("#ex-en").querySelectorAll("button").forEach(b=>
+    b.onclick=()=>post({action:"enable",exercise:ex,value:b.dataset.v==="1"}));
+  $("#ex-min").querySelectorAll("button").forEach(b=>
+    b.onclick=()=>post({action:"reps",exercise:ex,min:e.reps_min+(+b.dataset.d),max:e.reps_max}));
+  $("#ex-max").querySelectorAll("button").forEach(b=>
+    b.onclick=()=>post({action:"reps",exercise:ex,min:e.reps_min,max:e.reps_max+(+b.dataset.d)}));
 }
 
 $("#gate-sw").onclick=()=>post({action:"set_enabled",value:!S.enabled});
