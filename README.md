@@ -9,6 +9,13 @@ closing the tab to skip), streak stats, and three trigger modes.
 
 *Version française : [README.fr.md](README.fr.md)*
 
+## Requirements
+
+- **Python 3.10–3.12** — MediaPipe has no wheels for 3.13+ yet, and <3.10 won't run.
+- A **webcam** + an internet connection (first run downloads MediaPipe/OpenCV and a ~9 MB pose model).
+- **macOS** for the zero-config plugin onboarding — it pops the setup in a Terminal and triggers the camera-permission dialog. Linux/Windows work too; Claude just points you at `bootstrap.sh` to run once by hand.
+- `git` and `python3` on your PATH.
+
 ## Install
 
 ### As a Claude Code plugin (recommended)

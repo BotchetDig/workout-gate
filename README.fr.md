@@ -9,6 +9,13 @@ Tu fermes la session pour esquiver ? La dette t'attend à la suivante.
 
 *English version: [README.md](README.md)*
 
+## Prérequis
+
+- **Python 3.10–3.12** — MediaPipe n'a pas encore de wheel pour 3.13+, et <3.10 ne tourne pas.
+- Une **webcam** + une connexion internet (le 1er lancement télécharge MediaPipe/OpenCV et un modèle de pose ~9 Mo).
+- **macOS** pour l'onboarding plugin zéro-config — il ouvre le setup dans un Terminal et déclenche le dialogue de permission caméra. Linux/Windows marchent aussi ; Claude te pointe juste vers `bootstrap.sh` à lancer une fois à la main.
+- `git` et `python3` dans le PATH.
+
 ## Installation
 
 ### En plugin Claude Code (recommandé)
