@@ -4,6 +4,8 @@ All writes are atomic (temp file + os.replace) so an interruption mid-challenge
 never corrupts history. Data lives in ~/.workout-gate/ (override with the
 WORKOUT_GATE_DIR env var, mainly for tests).
 """
+from __future__ import annotations  # PEP 604 (str | None) on Python 3.9
+
 import copy
 import datetime
 import json

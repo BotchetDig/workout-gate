@@ -11,7 +11,7 @@ Tu fermes la session pour esquiver ? La dette t'attend à la suivante.
 
 ## Prérequis
 
-- **Python 3.10–3.12** — MediaPipe n'a pas encore de wheel pour 3.13+, et <3.10 ne tourne pas.
+- **Python 3.9–3.13** — y compris le Python 3.9 système de macOS, donc aucun Python plus récent à installer.
 - Une **webcam** + une connexion internet (le 1er lancement télécharge MediaPipe/OpenCV et un modèle de pose ~9 Mo).
 - **macOS** pour l'onboarding plugin zéro-config — il ouvre le setup dans un Terminal et déclenche le dialogue de permission caméra. Linux/Windows marchent aussi ; Claude te pointe juste vers `bootstrap.sh` à lancer une fois à la main.
 - `git` et `python3` dans le PATH.

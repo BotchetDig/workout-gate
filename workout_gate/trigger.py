@@ -6,6 +6,8 @@ Three trigger modes:
 - "roulette": each prompt has a P% chance — you never know
 A pending debt always means due, whatever the mode.
 """
+from __future__ import annotations  # PEP 604 (float | None) on Python 3.9
+
 import random
 import time
 
