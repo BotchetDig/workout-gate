@@ -16,7 +16,6 @@ from .trigger import PRESETS, apply_preset
 
 SPARK = "▁▂▃▄▅▆▇█"
 TRIGGERS = ["prompts", "time", "roulette"]
-MODES = ["sync", "detached"]
 EXERCISE_MODES = ["choice", "random"]
 PRESET_CYCLE = [None, "chill", "demo", "hardcore"]
 
@@ -47,9 +46,6 @@ def _adjust(config, key, delta):
         config[key] = max(5, min(240, config[key] + 5 * delta))
     elif key == "roulette_chance_pct":
         config[key] = max(5, min(100, config[key] + 5 * delta))
-    elif key == "mode":
-        config["mode"] = _cycle(MODES, config["mode"], delta)
-        touched_preset = False
     elif key == "exercise_mode":
         config["exercise_mode"] = _cycle(EXERCISE_MODES, config.get("exercise_mode", "choice"), delta)
         touched_preset = False
@@ -89,7 +85,6 @@ def _rows(config):
         rows.append((f"    {ex} reps min", str(ec["reps_min"]), f"repsmin:{ex}"))
         rows.append((f"    {ex} reps max", str(ec["reps_max"]), f"repsmax:{ex}"))
     rows += [
-        ("Gate mode", config["mode"], "mode"),
         ("Debug overlay", "on " if config.get("debug") else "off", "debug"),
         ("Force a challenge now", "", "@challenge"),
         ("Quit", "", "@quit"),

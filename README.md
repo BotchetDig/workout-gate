@@ -54,7 +54,8 @@ command — instant, **zero tokens**), or just `workout` from any terminal.
 
 | Command | Effect |
 |---|---|
-| `! workout` | open the dashboard (arrow keys, live stats) in a Terminal window |
+| `! workout` | open the web dashboard (settings + live stats) in your browser |
+| `! workout tui` | the terminal dashboard instead (curses, arrow keys) |
 | `! workout now` | force a challenge right now (great for filming) |
 | `! workout stats` | per-exercise totals + 7-day chart (arrow keys to switch exercise in a real terminal) |
 | `! workout status` | gate state (counter, debt, settings) |
@@ -74,11 +75,16 @@ command — instant, **zero tokens**), or just `workout` from any terminal.
 
 ### Dashboard
 
-`! workout` (or `workout` in a terminal) opens a full-screen dashboard: arrow
-keys to navigate every setting, left/right to change values, live stats with a
-7-day sparkline, and a "force a challenge" shortcut. Since the `!` prompt can't
-host curses, it pops up in a new Terminal window (macOS) that closes itself
-when you quit.
+`! workout` (or `workout` in a terminal) opens the **web dashboard** in your
+browser: every setting (preset, trigger, per-exercise rep ranges, gate on/off),
+live stats with per-exercise sparklines and a 7-day chart, and a "force a
+challenge" button. It's a tiny local-only server (stdlib, no dependencies, bound
+to `127.0.0.1`) that shuts itself down a few minutes after you close the tab.
+
+Prefer the terminal? `! workout tui` opens the original full-screen curses
+dashboard (arrow keys to navigate, left/right to change values) — it pops up in
+a new Terminal window on macOS. The webcam challenge itself is unchanged in
+both.
 
 ### Presets
 
@@ -112,14 +118,6 @@ when you quit.
 4. **Fail-open**: no webcam, broken dependency, any crash → your prompt goes
    through and the error lands in `~/.workout-gate/gate.log`. You can never be
    locked out of your own tool.
-
-## Modes
-
-`config.json → "mode"`:
-- `"sync"` (default): the hook waits for the challenge, then the prompt sends
-  itself. Most satisfying on video. 5-minute hook timeout.
-- `"detached"`: the window opens in the background, the prompt is blocked with
-  a message; do your reps, then resend (↑ + Enter).
 
 ## Global install
 

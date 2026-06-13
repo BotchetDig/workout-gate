@@ -24,7 +24,6 @@ DEFAULT_CONFIG = {
     "exercise_mode": "choice",  # "choice": pick in the window | "random": picked for you
     "debug": False,             # overlay the detected skeleton + live angle/state
     "preset": None,
-    "mode": "sync",  # "sync": hook waits for the challenge; "detached": window opens, prompt must be resent
 }
 
 DEFAULT_STATE = {

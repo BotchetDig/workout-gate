@@ -58,7 +58,8 @@ n'importe quel terminal.
 
 | Commande | Effet |
 |---|---|
-| `! workout` | ouvre le dashboard (flèches, stats live) dans une fenêtre Terminal |
+| `! workout` | ouvre le dashboard web (réglages + stats live) dans ton navigateur |
+| `! workout tui` | le dashboard terminal à la place (curses, flèches) |
 | `! workout now` | forcer un défi tout de suite (parfait pour filmer) |
 | `! workout stats` | totaux par exercice + histo 7 jours (flèches pour changer d'exo dans un vrai terminal) |
 | `! workout status` | état du gate (compteur, dette, réglages) |
@@ -78,12 +79,16 @@ n'importe quel terminal.
 
 ### Dashboard
 
-`! workout` (ou `workout` dans un terminal) ouvre un dashboard plein écran :
-flèches pour naviguer dans tous les réglages, gauche/droite pour changer les
-valeurs, stats en direct avec sparkline des 7 derniers jours, et un raccourci
-« forcer un défi ». Le prompt `!` ne pouvant pas héberger curses, il s'ouvre
-dans une nouvelle fenêtre Terminal (macOS) qui se ferme toute seule à la
-sortie.
+`! workout` (ou `workout` dans un terminal) ouvre le **dashboard web** dans ton
+navigateur : tous les réglages (preset, déclencheur, fourchettes de reps par
+exercice, gate on/off), les stats en direct avec sparklines par exercice et
+l'histo 7 jours, et un bouton « forcer un défi ». C'est un mini serveur
+**100 % local** (stdlib, zéro dépendance, sur `127.0.0.1`) qui s'éteint tout
+seul quelques minutes après la fermeture de l'onglet.
+
+Tu préfères le terminal ? `! workout tui` ouvre l'ancien dashboard curses plein
+écran (flèches pour naviguer) — il s'ouvre dans une nouvelle fenêtre Terminal
+sur macOS. Le défi webcam, lui, est inchangé dans les deux cas.
 
 ### Presets
 
@@ -117,14 +122,6 @@ sortie.
 4. **Fail-open** : pas de webcam, dépendance cassée, crash → le prompt passe et
    l'erreur va dans `~/.workout-gate/gate.log`. Jamais enfermé hors de ton
    propre outil.
-
-## Modes
-
-`config.json → "mode"` :
-- `"sync"` (défaut) : le hook attend la fin du défi, puis le prompt part tout
-  seul. Le plus satisfaisant en vidéo. Timeout 5 min.
-- `"detached"` : la fenêtre s'ouvre en arrière-plan, le prompt est bloqué avec
-  un message ; fais tes pompes puis renvoie-le (↑ + Entrée).
 
 ## Installation globale
 

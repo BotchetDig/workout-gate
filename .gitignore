@@ -3,3 +3,6 @@ __pycache__/
 *.pyc
 models/*.task
 .DS_Store
+
+# promo demo video (not shipped to forkers)
+/promo/

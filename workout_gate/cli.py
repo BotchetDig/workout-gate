@@ -19,7 +19,10 @@ def main(argv=None):
     sub.add_parser("stats", help="totals, streak, record, last 7 days")
     sub.add_parser("status", help="show gate state")
     sub.add_parser("statusline", help="compact one-line segment for a Claude Code statusline")
-    sub.add_parser("ui", help="full-screen interactive dashboard (arrow keys)")
+    sub.add_parser("ui", help="full-screen terminal dashboard (curses, arrow keys)")
+    sub.add_parser("tui", help="alias of 'ui' — the terminal dashboard")
+    sub.add_parser("web", help="open the web dashboard (this is the default)")
+    sub.add_parser("serve", help="(internal) run the web dashboard server")
     p_global = sub.add_parser("global", help="install/remove the gate for ALL Claude Code sessions")
     p_global.add_argument("action", choices=["on", "off", "status"])
     p_preset = sub.add_parser("preset", help="apply a preset")
@@ -35,7 +38,17 @@ def main(argv=None):
     p_debug.add_argument("action", choices=["on", "off"])
     args = parser.parse_args(argv)
 
-    if args.cmd in (None, "ui"):
+    if args.cmd == "serve":
+        from . import web
+        web.serve()
+        return
+
+    if args.cmd in (None, "web"):
+        from . import web
+        web.open_dashboard()
+        return
+
+    if args.cmd in ("ui", "tui"):
         from . import tui
         tui.main()
         return
@@ -139,7 +152,7 @@ def main(argv=None):
         for ex in store.enabled_exercises(config):
             ec = config["exercises"][ex]
             print(f"  {ex}: {ec['reps_min']}-{ec['reps_max']} reps")
-        print(f"Exercise mode: {config.get('exercise_mode', 'choice')}, gate mode: {config['mode']}"
+        print(f"Exercise mode: {config.get('exercise_mode', 'choice')}"
               + ("  [debug overlay ON]" if config.get("debug") else ""))
 
     elif args.cmd == "preset":

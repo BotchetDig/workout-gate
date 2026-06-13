@@ -13,7 +13,6 @@ Escape hatches (non-negotiable):
 import hashlib
 import json
 import os
-import subprocess
 import sys
 import time
 import traceback
@@ -84,19 +83,6 @@ def main() -> int:
         challenge.new_debt()
     owed = challenge.pending_summary(store.load_state())
     log(f"challenge triggered: {owed} owed (prompt_count={state['prompt_count']})")
-
-    if config["mode"] == "detached":
-        subprocess.Popen(
-            [sys.executable, "-m", "workout_gate", "pay"],
-            cwd=PROJECT_DIR, start_new_session=True,
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-        )
-        print(
-            f"WORKOUT GATE: {owed} required. The webcam window is opening - "
-            "do them, then resend your prompt (up arrow + Enter).",
-            file=sys.stderr,
-        )
-        return 2
 
     if challenge.settle_debt():
         print(f"[workout-gate] The user just did {owed} to send this prompt.")
