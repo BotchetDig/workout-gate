@@ -76,15 +76,19 @@ command — instant, **zero tokens**), or just `workout` from any terminal.
 ### Dashboard
 
 `! workout` (or `workout` in a terminal) opens the **web dashboard** in your
-browser: every setting (preset, trigger, per-exercise rep ranges, gate on/off),
-live stats with per-exercise sparklines and a 7-day chart, and a "force a
-challenge" button. It's a tiny local-only server (stdlib, no dependencies, bound
-to `127.0.0.1`) that shuts itself down a few minutes after you close the tab.
+browser. It's organised in **tabs**: an **Overview** tab (all the settings —
+preset, trigger, gate on/off — plus combined stats) and **one tab per
+exercise**, each with its own enable toggle, rep range, today/total counters and
+7-day chart. Add an exercise (one entry in `detector.py`) and its tab appears on
+its own. A "force a challenge" button is one click away. It's a tiny local-only
+server (stdlib, no dependencies, bound to `127.0.0.1`) that shuts itself down a
+few minutes after you close the tab.
 
-Prefer the terminal? `! workout tui` opens the original full-screen curses
-dashboard (arrow keys to navigate, left/right to change values) — it pops up in
-a new Terminal window on macOS. The webcam challenge itself is unchanged in
-both.
+Prefer the terminal? `! workout tui` opens the curses **settings** dashboard
+(arrow keys to navigate, left/right to change values), and `! workout stats` is
+the dedicated **stats** viewer (←/→ cycles through ALL + each exercise: total,
+streak, record, 7-day chart). Both pop up in a Terminal window on macOS; the
+webcam challenge itself is unchanged everywhere.
 
 ### Presets
 

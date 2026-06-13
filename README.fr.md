@@ -80,15 +80,19 @@ n'importe quel terminal.
 ### Dashboard
 
 `! workout` (ou `workout` dans un terminal) ouvre le **dashboard web** dans ton
-navigateur : tous les réglages (preset, déclencheur, fourchettes de reps par
-exercice, gate on/off), les stats en direct avec sparklines par exercice et
-l'histo 7 jours, et un bouton « forcer un défi ». C'est un mini serveur
-**100 % local** (stdlib, zéro dépendance, sur `127.0.0.1`) qui s'éteint tout
-seul quelques minutes après la fermeture de l'onglet.
+navigateur. Il est en **onglets** : un onglet **Overview** (tous les réglages —
+preset, déclencheur, gate on/off — et les stats combinées) et **un onglet par
+exercice**, chacun avec son interrupteur, sa fourchette de reps, ses compteurs
+jour/total et son histo 7 jours. Ajoute un exercice (une entrée dans
+`detector.py`) et son onglet apparaît tout seul. Le bouton « forcer un défi »
+est à un clic. C'est un mini serveur **100 % local** (stdlib, zéro dépendance,
+sur `127.0.0.1`) qui s'éteint quelques minutes après la fermeture de l'onglet.
 
-Tu préfères le terminal ? `! workout tui` ouvre l'ancien dashboard curses plein
-écran (flèches pour naviguer) — il s'ouvre dans une nouvelle fenêtre Terminal
-sur macOS. Le défi webcam, lui, est inchangé dans les deux cas.
+Tu préfères le terminal ? `! workout tui` ouvre le dashboard **réglages** curses
+(flèches pour naviguer, gauche/droite pour changer les valeurs), et
+`! workout stats` est le visualiseur de **stats** dédié (←/→ pour parcourir TOUT
++ chaque exercice : total, série, record, histo 7 jours). Les deux s'ouvrent
+dans une fenêtre Terminal sur macOS ; le défi webcam, lui, est inchangé partout.
 
 ### Presets
 
