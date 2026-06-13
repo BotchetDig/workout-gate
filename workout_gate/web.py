@@ -277,9 +277,6 @@ PAGE = r"""<!doctype html>
     min-height:100vh;padding:34px 18px 60px}
   .wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
   header{display:flex;align-items:center;gap:16px}
-  .mascot{flex:none;margin:0;font-size:12px;line-height:1;color:var(--orange);
-    white-space:pre;font-family:"JetBrains Mono",ui-monospace,monospace}
-  .mascot .eye{color:#15110e}
   .brand{display:flex;flex-direction:column;gap:3px}
   .taunt{color:var(--dim);font-size:11px;letter-spacing:1.5px;text-transform:uppercase}
   h1{font-size:23px;font-weight:700;letter-spacing:.3px}
@@ -347,12 +344,6 @@ PAGE = r"""<!doctype html>
 </style></head>
 <body><div class="wrap">
   <header>
-<pre class="mascot" aria-hidden="true"> █████████
-██<span class="eye">██</span>███<span class="eye">██</span>██
-██<span class="eye">██</span>███<span class="eye">██</span>██
- █████████
-  ██   ██
-  ██   ██</pre>
     <div class="brand">
       <h1>Workout Gate <span class="sub">dashboard</span></h1>
       <div class="taunt">drop and give me 20</div>

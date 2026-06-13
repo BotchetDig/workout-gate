@@ -1,7 +1,7 @@
 {
   "name": "workout-gate",
   "description": "Exercise before prompts: a webcam-counted challenge (push-ups or squats) gates your Claude Code prompts, with Claude trash-talking you through every rep. Dodge it and the debt follows you.",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "author": {
     "name": "BotchetDig"
   }
