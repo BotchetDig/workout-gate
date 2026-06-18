@@ -8,6 +8,25 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 HOME_DIR="${WORKOUT_GATE_DIR:-$HOME/.workout-gate}"
 VENV="$HOME_DIR/venv"
 MODEL_URL="https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task"
+MODEL_SHA256="5134a3aad27a58b93da0088d431f366da362b44e3ccfbe3462b3827a839011b1"
+
+# Verify a downloaded file against the pinned SHA-256, deleting it on mismatch
+# so a tampered/partial download can never be loaded as the pose model.
+verify_sha256() {
+  file="$1"; expected="$2"
+  if command -v shasum >/dev/null 2>&1; then
+    actual="$(shasum -a 256 "$file" | awk '{print $1}')"
+  elif command -v sha256sum >/dev/null 2>&1; then
+    actual="$(sha256sum "$file" | awk '{print $1}')"
+  else
+    printf "        warning: no shasum/sha256sum found, skipping integrity check\n"; return 0
+  fi
+  if [ "$actual" != "$expected" ]; then
+    rm -f "$file"
+    printf "  error: pose model checksum mismatch (expected %s, got %s)\n" "$expected" "$actual" >&2
+    exit 1
+  fi
+}
 
 B="\033[1m"; D="\033[2m"; G="\033[92m"; C="\033[96m"; E="\033[0m"
 
@@ -23,8 +42,10 @@ echo "$ROOT" > "$HOME_DIR/app-path"
 
 printf "  ${C}[2/3]${E} Pose model ${D}(~9 MB, one time)${E}\n"
 mkdir -p "$HOME_DIR/models"
-[ -f "$HOME_DIR/models/pose_landmarker_full.task" ] || \
+if [ ! -f "$HOME_DIR/models/pose_landmarker_full.task" ]; then
   curl -fsSL -o "$HOME_DIR/models/pose_landmarker_full.task" "$MODEL_URL"
+  verify_sha256 "$HOME_DIR/models/pose_landmarker_full.task" "$MODEL_SHA256"
+fi
 
 printf "  ${C}[3/3]${E} Sanity check\n"
 (cd "$ROOT" && "$VENV/bin/python" -m unittest discover -s tests >/dev/null 2>&1) \

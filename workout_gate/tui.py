@@ -8,7 +8,6 @@ import curses
 import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 from . import cursesui, store
@@ -195,7 +194,10 @@ def _write_dashboard_runner(wrapper: Path) -> Path:
     window closes itself (a detached osascript closes the window owning this
     shell's tty - 'whose' filters on nested properties silently fail, hence
     the explicit loop; the tty goes through argv to avoid quoting)."""
-    runner = Path(tempfile.gettempdir()) / "workout-gate-dashboard.sh"
+    # Write under the user-private data dir, not shared /tmp: a fixed name in a
+    # world-writable dir is a TOCTOU foothold (another local user could pre-make
+    # or swap the file and run code in this Terminal). data_dir() is ~/.workout-gate.
+    runner = store.data_dir() / "dashboard-runner.sh"
     runner.write_text(f"""#!/bin/sh
 clear
 '{wrapper}'

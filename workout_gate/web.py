@@ -150,7 +150,23 @@ class _State:
     last_activity = time.time()
 
 
-def _handler_class():
+def _local_request(headers, port) -> bool:
+    """Guard against CSRF / DNS-rebinding: a browser tab on another origin can
+    POST to our port, so we only trust requests whose Host is loopback and
+    whose Origin (when the browser sends one) is loopback too. Same-origin
+    fetches from our own page carry no Origin or a 127.0.0.1 one and pass."""
+    host = (headers.get("Host") or "").split(":")[0]
+    if host not in ("127.0.0.1", "localhost"):
+        return False
+    origin = headers.get("Origin")
+    if origin is not None:
+        ok = (f"http://127.0.0.1:{port}", f"http://localhost:{port}")
+        if origin not in ok:
+            return False
+    return True
+
+
+def _handler_class(port):
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *a):  # quiet
             pass
@@ -177,6 +193,9 @@ def _handler_class():
 
         def do_POST(self):
             _State.last_activity = time.time()
+            if not _local_request(self.headers, port):
+                self._send(403, json.dumps({"error": "forbidden"}), "application/json")
+                return
             if self.path != "/api/action":
                 self._send(404, "not found", "text/plain")
                 return
@@ -202,8 +221,11 @@ def _idle_watch(httpd):
 def serve() -> None:
     """Run the dashboard server (blocking). Picks a free port, advertises it in
     the data dir, and auto-exits when idle. Invoked detached by the launcher."""
-    httpd = ThreadingHTTPServer(("127.0.0.1", 0), _handler_class())
+    # Bind first to learn the ephemeral port, then build a handler that knows
+    # it so the Host/Origin guard can pin requests to this exact origin.
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), BaseHTTPRequestHandler)
     port = httpd.server_address[1]
+    httpd.RequestHandlerClass = _handler_class(port)
     d = store.data_dir()
     (d / PORT_FILE).write_text(str(port))
     (d / PID_FILE).write_text(str(os.getpid()))
