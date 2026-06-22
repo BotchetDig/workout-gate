@@ -84,6 +84,33 @@ def main() -> int:
     owed = challenge.pending_summary(store.load_state())
     log(f"challenge triggered: {owed} owed (prompt_count={state['prompt_count']})")
 
+    blocking = config.get("blocking", True)
+
+    # NON-BLOCKING mode (config blocking=false): the webcam still opens and
+    # counts reps, but the prompt is NEVER blocked. Close the window anytime
+    # (ESC / the X) and the prompt goes through. Always returns 0.
+    if not blocking:
+        try:
+            if challenge.settle_debt():
+                print(f"[workout-gate] The user just did {owed} to send this prompt.")
+            else:
+                # Closed before finishing: don't carry the debt into every
+                # following prompt — clear it and reset the counter so the gate
+                # only re-appears after another full cycle of N prompts.
+                st = store.load_state()
+                st["debt_reps"] = 0
+                st["debt_offers"] = []
+                st["prompt_count"] = 0
+                st["last_challenge_ts"] = time.time()
+                store.save_state(st)
+                print("[workout-gate] Challenge closed; counter reset, "
+                      "prompt let through.")
+        except Exception as e:
+            log(f"challenge error (non-blocking, prompt let through): {e}")
+        return 0
+
+    # BLOCKING mode (default): an aborted challenge blocks the prompt; the user
+    # resends to retry (or turns the gate off). settle_debt() resets on success.
     if challenge.settle_debt():
         print(f"[workout-gate] The user just did {owed} to send this prompt.")
         return 0
