@@ -141,6 +141,27 @@ class GateFlowTest(unittest.TestCase):
             rc = _run({"prompt": "go", "session_id": "s3"})
         self.assertEqual(rc, 2)
 
+    def test_aborted_non_blocking_passes_and_resets(self):
+        # blocking=false: an aborted challenge must NOT block — the prompt goes
+        # through (rc 0) and the debt + counter reset so it doesn't nag.
+        self._due_state()
+        config = store.load_config()
+        config["blocking"] = False
+        store.save_config(config)
+        st = store.load_state()
+        st["prompt_count"] = 7
+        store.save_state(st)
+        with mock.patch("workout_gate.challenge.should_externalize", return_value=False), \
+             mock.patch("workout_gate.challenge.settle_debt", return_value=False), \
+             mock.patch("workout_gate.challenge.pending_summary", return_value="5 pushups"), \
+             mock.patch.object(gate, "log"):
+            rc = _run({"prompt": "go", "session_id": "s5"})
+        self.assertEqual(rc, 0)
+        s = store.load_state()
+        self.assertEqual(s["debt_reps"], 0)
+        self.assertEqual(s["debt_offers"], [])
+        self.assertEqual(s["prompt_count"], 0)
+
     def test_desktop_routes_through_terminal(self):
         self._due_state()
         with mock.patch("workout_gate.challenge.should_externalize", return_value=True), \

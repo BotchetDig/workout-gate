@@ -100,18 +100,25 @@ class RepCounter:
 # ─────────────────────────────────────────────────────────────────────────
 
 
-def _best_side(landmarks, side_ids, current=None, margin=0.0):
-    """Pick the body side the camera sees best, by highest minimum visibility.
-    Returns (side_index, points) or None if neither side is visible enough.
+def _best_side(landmarks, side_ids, current=None, margin=0.0, required=None):
+    """Pick the body side the camera sees best. Returns (side_index, points) or
+    None if neither side is visible enough.
+
+    `required` is how many of the triple's points must clear MIN_VISIBILITY
+    (default: all of them); the side is ranked by the visibility of its
+    `required`-th most-visible point, so a partially-occluded side (e.g. ankle
+    off-frame on a laptop webcam) still qualifies.
 
     Stickiness: if `current` (the side chosen last frame) is still visible and
     within `margin` of the best side, keep it. This stops per-frame left/right
-    flapping in profile views, where the two sides report different joint
-    angles and a flip injects a fake jump into the smoothing window."""
+    flapping in profile views, where the two sides report different joint angles
+    and a flip injects a fake jump into the smoothing window."""
     scored = []
     for idx, ids in enumerate(side_ids):
         pts = [landmarks[i] for i in ids]
-        vis = min(p.visibility for p in pts)
+        need = len(pts) if required is None else required
+        vis_sorted = sorted((p.visibility for p in pts), reverse=True)
+        vis = vis_sorted[need - 1]  # visibility of the need-th most-visible point
         scored.append((vis, idx, pts))
     best_vis, best_idx, best_pts = max(scored, key=lambda s: s[0])
     if best_vis < MIN_VISIBILITY:
@@ -194,14 +201,56 @@ class PushupCounter(ExerciseCounter):
 
 
 class SquatCounter(ExerciseCounter):
-    """Knee angle (hip-knee-ankle), feet below knees (survives deep squats)."""
+    """Knee angle (hip-knee-ankle), feet below knees (survives deep squats).
+
+    Laptop-webcam friendly: when the ankle is off-frame (common when the user
+    sits close), it falls back to the thigh's tilt from vertical (hip->knee
+    only) mapped onto the same knee-angle scale, so squats still count with
+    just hip + knee. With the ankle visible it behaves exactly as before."""
     SIDES = ((L_HIP, L_KNEE, L_ANKLE), (R_HIP, R_KNEE, R_ANKLE))
     DOWN_ANGLE = KNEE_DOWN_ANGLE
     UP_ANGLE = KNEE_UP_ANGLE
+    MIN_REQUIRED = 2  # hip + knee mandatory; ankle optional
 
-    def posture(self, landmarks, side_idx, pts) -> bool:
-        knee, ankle = pts[1], pts[2]
-        return ankle.y > knee.y  # standing or squatting, not lying down
+    def update(self, landmarks) -> bool:
+        self.body_visible = False
+        self.posture_ok = False
+        if landmarks is None:
+            return False
+        picked = _best_side(landmarks, self.SIDES, required=self.MIN_REQUIRED)
+        if picked is None:
+            return False
+        side_idx, pts = picked
+        self.body_visible = True
+        hip, knee, ankle = pts
+        ankle_seen = ankle.visibility >= MIN_VISIBILITY
+        self.posture_ok = self._posture(hip, knee, ankle, ankle_seen)
+        if not self.posture_ok:
+            return False
+        if ankle_seen:
+            self.angle = angle_at((hip.x, hip.y), (knee.x, knee.y),
+                                  (ankle.x, ankle.y))
+        else:
+            self.angle = self._thigh_proxy_angle(hip, knee)
+        return self.reps.update(self.angle)
+
+    @staticmethod
+    def _posture(hip, knee, ankle, ankle_seen) -> bool:
+        if ankle_seen:
+            return ankle.y > knee.y   # standing or squatting, not lying down
+        return knee.y > hip.y         # knee below hip: upright body, not lying
+
+    @staticmethod
+    def _thigh_proxy_angle(hip, knee) -> float:
+        """Thigh tilt from vertical (hip->knee), mapped to the knee-angle
+        scale: ~180 standing (thigh vertical) down to ~0 in a deep squat."""
+        vx, vy = knee.x - hip.x, knee.y - hip.y
+        n = math.hypot(vx, vy)
+        if n == 0:
+            return 180.0
+        cos = max(-1.0, min(1.0, vy / n))  # dot with downward vertical (0, 1)
+        tilt = math.degrees(math.acos(cos))
+        return max(0.0, 180.0 - 2.0 * tilt)
 
 
 EXERCISES = {

@@ -8,7 +8,6 @@ import curses
 import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 from . import cursesui, store
@@ -52,6 +51,9 @@ def _adjust(config, key, delta):
     elif key == "debug":
         config["debug"] = not config.get("debug", False)
         touched_preset = False
+    elif key == "blocking":
+        config["blocking"] = not config.get("blocking", True)
+        touched_preset = False
     elif key.startswith("enable:"):
         ex = key.split(":", 1)[1]
         config["exercises"][ex]["enabled"] = not config["exercises"][ex].get("enabled")
@@ -85,6 +87,7 @@ def _rows(config):
         rows.append((f"    {ex} reps min", str(ec["reps_min"]), f"repsmin:{ex}"))
         rows.append((f"    {ex} reps max", str(ec["reps_max"]), f"repsmax:{ex}"))
     rows += [
+        ("Challenge mode", "blocking" if config.get("blocking", True) else "non-blocking", "blocking"),
         ("Debug overlay", "on " if config.get("debug") else "off", "debug"),
         ("Force a challenge now", "", "@challenge"),
         ("Quit", "", "@quit"),
@@ -196,7 +199,10 @@ def _write_dashboard_runner(wrapper: Path) -> Path:
     then the window closes itself (a detached osascript closes the window owning
     this shell's tty - 'whose' filters on nested properties silently fail, hence
     the explicit loop; the tty goes through argv to avoid quoting)."""
-    runner = Path(tempfile.gettempdir()) / "workout-gate-dashboard.sh"
+    # Write under the user-private data dir, not shared /tmp: a fixed name in a
+    # world-writable dir is a TOCTOU foothold (another local user could pre-make
+    # or swap the file and run code in this Terminal). data_dir() is ~/.workout-gate.
+    runner = store.data_dir() / "dashboard-runner.sh"
     runner.write_text(f"""#!/bin/sh
 clear
 '{wrapper}' ui

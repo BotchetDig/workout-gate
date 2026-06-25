@@ -1,4 +1,4 @@
 mediapipe==0.10.35
-opencv-python>=4.10
-numpy
-pillow>=10.0
+opencv-python==4.10.0.84
+numpy==1.26.4
+pillow==10.4.0

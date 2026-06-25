@@ -167,6 +167,10 @@ dans une fenêtre Terminal sur macOS ; le défi webcam, lui, est inchangé parto
   même voix de coach, juste le nom qui change.
 - Chaque rep est écrite sur disque à l'instant où elle est faite (écriture
   atomique) : tu coupes à 4/8, tu gardes 4 aux stats et il t'en reste 4 dues.
+- **Bloquant par défaut** : un défi abandonné gèle ton prompt tant que tu n'as
+  pas fini (renvoie pour réessayer). Bascule *Challenge mode* sur non-bloquant
+  dans le dashboard et la webcam compte toujours tes reps, mais fermer la
+  fenêtre laisse toujours passer le prompt.
 - Données dans `~/.workout-gate/` : `config.json`, `state.json`, `stats.json`,
   `gate.log`.
 

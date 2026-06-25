@@ -41,6 +41,14 @@ class WebLogicTest(unittest.TestCase):
         self.web.apply_action({"action": "set_enabled", "value": True})
         self.assertTrue(self.store.load_config()["enabled"])
 
+    def test_blocking_toggle(self):
+        self.assertTrue(self.web.build_state()["blocking"])  # default
+        self.web.apply_action({"action": "blocking", "value": False})
+        self.assertFalse(self.store.load_config()["blocking"])
+        self.assertFalse(self.web.build_state()["blocking"])
+        self.web.apply_action({"action": "blocking", "value": True})
+        self.assertTrue(self.store.load_config()["blocking"])
+
     def test_freq_sets_trigger_and_clamps(self):
         st = self.web.apply_action({"action": "freq", "value": 7})
         self.assertEqual(st["every_n_prompts"], 7)

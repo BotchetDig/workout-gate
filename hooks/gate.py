@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """UserPromptSubmit hook: the gate itself.
 
-Shared by supported surfaces — Claude Code CLI + desktop and Codex CLI — all
-running this one file against the one runtime in ~/.workout-gate/. Codex's
-UserPromptSubmit payload carries the same prompt/session_id (plus turn_id), so
-no per-tool shim is needed here. Codex Desktop currently discovers hooks but did
-not run this event in local testing.
+Shared by all supported surfaces — Claude Code CLI + desktop and Codex CLI +
+desktop — all running this one file against the one runtime in ~/.workout-gate/.
+Codex's UserPromptSubmit payload carries the same prompt/session_id (plus
+turn_id), so no per-tool shim is needed here.
 
 Exit 0 = prompt goes through. Exit 2 = prompt blocked (stderr shown to user).
 
@@ -150,6 +149,25 @@ def main() -> int:
     if paid:
         print(f"[workout-gate] The user just did {owed} to send this prompt.")
         return 0
+
+    # NON-BLOCKING mode (config blocking=false, opt-in from the dashboard): the
+    # challenge opened and counted reps, but an abort must NEVER block the prompt.
+    # Clear the debt and reset the counter (under the shared lock) so the gate
+    # only re-appears after another full cycle, instead of nagging every prompt.
+    # The default stays blocking — that's the whole point of the gate.
+    if not config.get("blocking", True):
+        def _reset(st):
+            st["debt_reps"] = 0
+            st["debt_offers"] = []
+            st["prompt_count"] = 0
+            st["last_challenge_ts"] = time.time()
+        store.mutate_state(_reset)
+        log("challenge closed in non-blocking mode — counter reset, prompt let through")
+        print("[workout-gate] Challenge closed; counter reset, prompt let through.")
+        return 0
+
+    # BLOCKING mode (default): an aborted challenge blocks the prompt; resend to
+    # retry (or run 'workout off').
     remaining = challenge.pending_summary(store.load_state())
     print(
         f"WORKOUT GATE: challenge aborted, {remaining} still owed. "

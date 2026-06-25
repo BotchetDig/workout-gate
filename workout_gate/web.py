@@ -62,6 +62,7 @@ def build_state() -> dict:
         "roulette_chance_pct": config["roulette_chance_pct"],
         "exercise_mode": config.get("exercise_mode", "choice"),
         "debug": bool(config.get("debug", False)),
+        "blocking": bool(config.get("blocking", True)),
         "preset": config.get("preset"),
         "presets": sorted(trigger.PRESETS),
         "exercises": exercises,
@@ -123,6 +124,8 @@ def apply_action(p: dict) -> dict:
         config["exercise_mode"] = p["value"]
     elif a == "debug":
         config["debug"] = bool(p["value"])
+    elif a == "blocking":
+        config["blocking"] = bool(p["value"])
     elif a == "challenge":
         _spawn_challenge()
         return build_state()
@@ -150,7 +153,23 @@ class _State:
     last_activity = time.time()
 
 
-def _handler_class():
+def _local_request(headers, port) -> bool:
+    """Guard against CSRF / DNS-rebinding: a browser tab on another origin can
+    POST to our port, so we only trust requests whose Host is loopback and
+    whose Origin (when the browser sends one) is loopback too. Same-origin
+    fetches from our own page carry no Origin or a 127.0.0.1 one and pass."""
+    host = (headers.get("Host") or "").split(":")[0]
+    if host not in ("127.0.0.1", "localhost"):
+        return False
+    origin = headers.get("Origin")
+    if origin is not None:
+        ok = (f"http://127.0.0.1:{port}", f"http://localhost:{port}")
+        if origin not in ok:
+            return False
+    return True
+
+
+def _handler_class(port):
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *a):  # quiet
             pass
@@ -177,6 +196,9 @@ def _handler_class():
 
         def do_POST(self):
             _State.last_activity = time.time()
+            if not _local_request(self.headers, port):
+                self._send(403, json.dumps({"error": "forbidden"}), "application/json")
+                return
             if self.path != "/api/action":
                 self._send(404, "not found", "text/plain")
                 return
@@ -202,8 +224,11 @@ def _idle_watch(httpd):
 def serve() -> None:
     """Run the dashboard server (blocking). Picks a free port, advertises it in
     the data dir, and auto-exits when idle. Invoked detached by the launcher."""
-    httpd = ThreadingHTTPServer(("127.0.0.1", 0), _handler_class())
+    # Bind first to learn the ephemeral port, then build a handler that knows
+    # it so the Host/Origin guard can pin requests to this exact origin.
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), BaseHTTPRequestHandler)
     port = httpd.server_address[1]
+    httpd.RequestHandlerClass = _handler_class(port)
     d = store.data_dir()
     (d / PORT_FILE).write_text(str(port))
     (d / PID_FILE).write_text(str(os.getpid()))
@@ -391,6 +416,7 @@ PAGE = r"""<!doctype html>
       <div class="row"><div class="lbl">Trigger</div><div id="trigger-seg" class="seg"></div></div>
       <div id="trigger-detail"></div>
       <div class="row"><div class="lbl">Exercise pick<small>which exercise when several are on</small></div><div id="mode-seg" class="seg"></div></div>
+      <div class="row"><div class="lbl">Challenge mode<small>blocking: finish or resend · non-blocking: close anytime, prompt still goes through</small></div><div id="blocking-seg" class="seg"></div></div>
       <div class="row"><div class="lbl">Debug overlay<small>skeleton + live joint angle</small></div><div id="debug-seg" class="seg"></div></div>
     </section>
 
@@ -505,8 +531,9 @@ function renderOverview(){
     else post({action:"chance",value:S.roulette_chance_pct+5*d});
   });}
 
-  // mode + debug
+  // mode + blocking + debug
   seg($("#mode-seg"),[{label:"choice",value:"choice"},{label:"random",value:"random"}],S.exercise_mode,v=>post({action:"mode",value:v}));
+  seg($("#blocking-seg"),[{label:"blocking",value:true},{label:"non-blocking",value:false}],S.blocking,v=>post({action:"blocking",value:v}));
   seg($("#debug-seg"),[{label:"off",value:false},{label:"on",value:true}],S.debug,v=>post({action:"debug",value:v}));
 
   // challenge button

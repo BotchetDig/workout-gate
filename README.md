@@ -159,6 +159,10 @@ webcam challenge itself is unchanged everywhere.
   **CODEX** — same trash-talk voice, just the tag.
 - Every rep is written to disk the moment it happens (atomic writes): quit at
   4/8 and you keep 4 in the stats, with 4 still owed next session.
+- **Blocking by default**: an aborted challenge holds your prompt until you
+  finish (resend to retry). Flip *Challenge mode* to non-blocking in the
+  dashboard and the webcam still counts your reps, but closing it always lets
+  the prompt through.
 - Data lives in `~/.workout-gate/`: `config.json`, `state.json`, `stats.json`,
   `gate.log`.
 

@@ -31,6 +31,10 @@ DEFAULT_CONFIG = {
     # registry — add an exercise there and it shows up here automatically.
     "exercises": default_exercises_config(),
     "exercise_mode": "choice",  # "choice": pick in the window | "random": picked for you
+    "blocking": True,           # True: an unfinished challenge blocks the prompt
+                                # (resend to retry). False: the webcam still opens
+                                # and counts reps, but the prompt is never blocked
+                                # — close the window anytime and it goes through.
     "debug": False,             # overlay the detected skeleton + live angle/state
     "preset": None,
 }
