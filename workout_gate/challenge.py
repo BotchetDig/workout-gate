@@ -4,6 +4,7 @@ debt settlement. Persists progress after every rep so an interruption
 import contextlib
 import os
 import random
+import sys
 import time
 
 # Quiet MediaPipe/TensorFlow C++ logging before it loads (env-var path).
@@ -180,10 +181,10 @@ def new_debt() -> list:
     for ex in names:
         ec = config["exercises"][ex]
         offers.append({"exercise": ex, "reps": random.randint(ec["reps_min"], ec["reps_max"])})
-    state = store.load_state()
-    state["debt_offers"] = offers
-    state["debt_reps"] = 0
-    store.save_state(state)
+    def _set(state):
+        state["debt_offers"] = offers
+        state["debt_reps"] = 0
+    store.mutate_state(_set)
     return offers
 
 
@@ -209,24 +210,101 @@ def settle_debt() -> bool:
         return True
 
     def on_choice(exercise, reps):
-        st = store.load_state()
-        st["debt_exercise"] = exercise
-        st["debt_reps"] = reps
-        st["debt_offers"] = []
-        store.save_state(st)
+        def _c(st):
+            st["debt_exercise"] = exercise
+            st["debt_reps"] = reps
+            st["debt_offers"] = []
+        store.mutate_state(_c)
 
     def on_rep(exercise):
-        st = store.load_state()
-        st["debt_reps"] = max(0, st["debt_reps"] - 1)
-        store.save_state(st)
+        def _dec(st):
+            st["debt_reps"] = max(0, st["debt_reps"] - 1)
+        store.mutate_state(_dec)
         store.record_rep(exercise)
 
     if run_challenge(offers, chosen=chosen, on_choice=on_choice, on_rep=on_rep):
-        st = store.load_state()
-        st["debt_reps"] = 0
-        st["debt_offers"] = []
-        st["prompt_count"] = 0
-        st["last_challenge_ts"] = time.time()
-        store.save_state(st)
+        def _done(st):
+            st["debt_reps"] = 0
+            st["debt_offers"] = []
+            st["prompt_count"] = 0
+            st["last_challenge_ts"] = time.time()
+        store.mutate_state(_done)
         return True
     return False
+
+
+def should_externalize() -> bool:
+    """Whether to run the webcam challenge in a separate Terminal window rather
+    than in-process. Under a macOS desktop app (Claude/Codex desktop) the gate
+    hook has no controlling terminal of its own; opening the webcam there pins
+    the camera-permission prompt to the app (or python) and the OpenCV window
+    may not surface. Routing through Terminal.app pins the permission to
+    Terminal — which onboarding already primed — and guarantees a visible
+    window. The CLI, which already has a terminal, keeps the snappier in-process
+    path. Force either way with WORKOUT_GATE_TERMINAL=1/0."""
+    env = os.environ.get("WORKOUT_GATE_TERMINAL")
+    if env in ("0", "1"):
+        return env == "1"
+    if sys.platform != "darwin":
+        return False
+    try:  # a controlling terminal exists -> we're in a CLI, stay in-process
+        fd = os.open("/dev/tty", os.O_RDONLY)
+        os.close(fd)
+        return False
+    except OSError:  # no controlling terminal -> desktop app
+        return True
+
+
+def _terminal_command(python: str, root: str, source: str = "claude") -> str:
+    """The shell command Terminal.app runs to settle the debt: cd into the code
+    dir (so `workout_gate` imports) and exec the paying CLI in that window.
+    WORKOUT_GATE_CLAIMED tells that CLI the gate already claimed the slot on its
+    behalf, so it skips its own "a challenge is already open" guard and takes
+    ownership of the pid. WORKOUT_GATE_SOURCE carries the speaker tag across to
+    the child (the env doesn't survive osascript's fresh login shell)."""
+    import shlex
+    return (f"cd {shlex.quote(root)} && exec env WORKOUT_GATE_CLAIMED=1 "
+            f"WORKOUT_GATE_SOURCE={shlex.quote(source)} {shlex.quote(python)} -m workout_gate pay")
+
+
+def _debt_clear(state: dict) -> bool:
+    return state.get("debt_reps", 0) <= 0 and not state.get("debt_offers")
+
+
+def settle_external(timeout_s: float = 285.0, poll_s: float = 0.4, _runner=None) -> bool:
+    """Pop `workout pay` in a Terminal window so the camera prompt attaches to
+    Terminal.app, then block until the challenge finishes. Returns True if the
+    debt was fully paid. Falls back to in-process settle if Terminal can't be
+    launched. The timeout stays under the hook's 300s ceiling.
+
+    The caller (the gate) has already claimed the slot (challenge.pid = its own
+    pid); we do NOT clear it, so no other tool can slip a second window into the
+    gap before the Terminal child takes the pid over."""
+    import subprocess
+    from .paths import PROJECT_DIR, python_bin
+
+    source = os.environ.get("WORKOUT_GATE_SOURCE", "claude")
+    inner = _terminal_command(str(python_bin()), str(PROJECT_DIR), source)
+    osa = f'tell application "Terminal" to do script "{inner}"'
+
+    def _default_runner():
+        subprocess.run(["osascript", "-e", osa], check=False,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        (_runner or _default_runner)()
+    except (OSError, subprocess.SubprocessError):
+        return settle_debt()  # no Terminal available -> best-effort in-process
+
+    me = os.getpid()
+    deadline = time.monotonic() + timeout_s
+    started = False
+    while time.monotonic() < deadline:
+        if _debt_clear(store.load_state()):
+            return True  # paid — return at once, don't wait out the timeout
+        pid = store.running_challenge_pid()
+        if pid and pid != me:
+            started = True            # the Terminal challenge took the slot
+        elif started and pid is None:
+            break                     # it ran and exited without paying -> aborted
+        time.sleep(poll_s)
+    return _debt_clear(store.load_state())

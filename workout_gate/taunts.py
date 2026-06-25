@@ -70,6 +70,18 @@ VALIDATED = [
 CHOICE = "Pick your poison. I'll judge either way."
 
 
+# The speaker tag on the bubble. Same voice everywhere (these lines are shared);
+# only the NAME tracks the tool that's making you pay right now, set by the gate
+# via WORKOUT_GATE_SOURCE. Unknown source -> a neutral COACH, never a crash.
+import os  # noqa: E402
+
+_SPEAKERS = {"claude": "CLAUDE", "codex": "CODEX"}
+
+
+def coach_name() -> str:
+    return _SPEAKERS.get((os.environ.get("WORKOUT_GATE_SOURCE") or "claude").lower(), "COACH")
+
+
 def _pick(pool, seed):
     """Deterministic choice so a line is stable for a whole challenge but
     varies between challenges. `seed` is usually the target rep count."""

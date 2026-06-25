@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "WORKOUT_GATE_SOURCE=codex \"${CLAUDE_PROJECT_DIR:-$PWD}/hooks/gate.sh\"",
+            "timeout": 300
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PROJECT_DIR:-$PWD}/hooks/session_start.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}

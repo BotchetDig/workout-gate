@@ -17,6 +17,13 @@ def runtime_home() -> Path:
     return Path(os.environ.get("WORKOUT_GATE_DIR", Path.home() / ".workout-gate"))
 
 
+def app_dir() -> Path:
+    """Vendored code dir shared by every surface (Claude/Codex, CLI/desktop).
+    One runtime drives the shared state, so versions can't diverge — see
+    installer.sync_app()."""
+    return runtime_home() / "app"
+
+
 def python_bin() -> Path:
     runtime = runtime_home() / "venv" / "bin" / "python"
     return runtime if runtime.exists() else PROJECT_DIR / ".venv" / "bin" / "python"

@@ -1,6 +1,8 @@
 """CLI: python -m workout_gate {on,off,now,pay,stats,status,preset,set}"""
 import argparse
+import os
 import sys
+from pathlib import Path
 
 from . import store
 from .trigger import PRESETS, apply_preset
@@ -25,6 +27,8 @@ def main(argv=None):
     sub.add_parser("serve", help="(internal) run the web dashboard server")
     p_global = sub.add_parser("global", help="install/remove the gate for ALL Claude Code sessions")
     p_global.add_argument("action", choices=["on", "off", "status"])
+    p_codex = sub.add_parser("codex", help="install/remove the gate for ALL Codex sessions")
+    p_codex.add_argument("action", choices=["on", "off", "status"])
     p_preset = sub.add_parser("preset", help="apply a preset")
     p_preset.add_argument("name", choices=sorted(PRESETS))
     p_set = sub.add_parser("set", help="freq N | reps [EXERCISE] MIN MAX | trigger M | time MIN | chance PCT | mode choice|random")
@@ -62,7 +66,10 @@ def main(argv=None):
         setup_wizard.run()
         return
 
-    if args.cmd in ("now", "pay") and store.running_challenge_pid():
+    # The gate launches `workout pay` in Terminal having already claimed the slot
+    # on its behalf (WORKOUT_GATE_CLAIMED) — that child must not refuse itself.
+    if (args.cmd in ("now", "pay") and not os.environ.get("WORKOUT_GATE_CLAIMED")
+            and store.running_challenge_pid()):
         sys.exit("A challenge window is already open. Finish it, or close it with: workout stop")
 
     if args.cmd == "stop":
@@ -70,7 +77,6 @@ def main(argv=None):
         if pid is None:
             print("No challenge running.")
             return
-        import os
         import signal
         os.kill(pid, signal.SIGTERM)
         store.clear_challenge_pid()
@@ -107,7 +113,17 @@ def main(argv=None):
 
     elif args.cmd == "global":
         from . import installer
-        print({"on": installer.enable, "off": installer.disable, "status": installer.status}[args.action]())
+        msg = {"on": installer.enable, "off": installer.disable, "status": installer.status}[args.action]()
+        # You gate your AI usage, not one tool — wire Codex too when it's present.
+        if (Path.home() / ".codex").exists():
+            msg += "\n\n" + {"on": installer.enable_codex, "off": installer.disable_codex,
+                             "status": installer.codex_status}[args.action]()
+        print(msg)
+
+    elif args.cmd == "codex":
+        from . import installer
+        print({"on": installer.enable_codex, "off": installer.disable_codex,
+               "status": installer.codex_status}[args.action]())
 
     elif args.cmd == "debug":
         config = store.load_config()

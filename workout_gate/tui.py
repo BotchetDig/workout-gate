@@ -171,8 +171,8 @@ def _menu(scr, message=""):
 
 
 def _no_tty_fallback():
-    """Called from Claude Code's '!' prompt or a pipe: pop the dashboard in a
-    real Terminal window instead (macOS), or explain the alternatives."""
+    """Called from Claude Code's '!' prompt or a pipe: pop the curses dashboard
+    in a real Terminal window instead (macOS), or explain the alternatives."""
     wrapper = Path(__file__).resolve().parent.parent / "workout"
     if sys.platform == "darwin" and wrapper.exists():
         runner = _write_dashboard_runner(wrapper)
@@ -191,14 +191,15 @@ def _no_tty_fallback():
 
 
 def _write_dashboard_runner(wrapper: Path) -> Path:
-    """Script run inside the popped Terminal window: dashboard, then the
-    window closes itself (a detached osascript closes the window owning this
-    shell's tty - 'whose' filters on nested properties silently fail, hence
+    """Script run inside the popped Terminal window: the curses dashboard
+    (`workout ui` — the bare wrapper would open the *web* dashboard instead),
+    then the window closes itself (a detached osascript closes the window owning
+    this shell's tty - 'whose' filters on nested properties silently fail, hence
     the explicit loop; the tty goes through argv to avoid quoting)."""
     runner = Path(tempfile.gettempdir()) / "workout-gate-dashboard.sh"
     runner.write_text(f"""#!/bin/sh
 clear
-'{wrapper}'
+'{wrapper}' ui
 exec osascript -e 'on run argv
 tell application "Terminal"
 repeat with w in windows

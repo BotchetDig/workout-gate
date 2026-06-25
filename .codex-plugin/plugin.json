@@ -1,0 +1,8 @@
+{
+  "name": "workout-gate",
+  "description": "Exercise before prompts: a webcam-counted challenge (push-ups or squats) gates your Codex prompts, with the assistant trash-talking you through every rep. Dodge it and the debt follows you — across Codex and Claude Code, since both share one runtime.",
+  "version": "1.8.0",
+  "author": {
+    "name": "BotchetDig"
+  }
+}

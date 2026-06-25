@@ -21,10 +21,21 @@ echo "$ROOT" > "$HOME_DIR/app-path"
 [ -x "$VENV/bin/python" ] || python3 -m venv "$VENV"
 "$VENV/bin/pip" install -q -r "$ROOT/requirements.txt"
 
+# Vendor the code into ~/.workout-gate/app so every surface (Claude/Codex,
+# CLI/desktop) shares one runtime version against the shared state.
+( cd "$ROOT" && "$VENV/bin/python" -c "from workout_gate import installer; installer.sync_app()" ) >/dev/null 2>&1 || true
+
 printf "  ${C}[2/3]${E} Pose model ${D}(~9 MB, one time)${E}\n"
 mkdir -p "$HOME_DIR/models"
 [ -f "$HOME_DIR/models/pose_landmarker_full.task" ] || \
   curl -fsSL -o "$HOME_DIR/models/pose_landmarker_full.task" "$MODEL_URL"
+
+# Deps + model are both in place now (set -eu means we only reach here if pip
+# AND the model download succeeded). Mark the runtime ready so SessionStart
+# stops treating a half-finished install as complete, and release the
+# in-progress lock so a stuck attempt isn't what future sessions wait on.
+: > "$HOME_DIR/ready"
+rm -rf "$HOME_DIR/bootstrapping"
 
 printf "  ${C}[3/3]${E} Sanity check\n"
 (cd "$ROOT" && "$VENV/bin/python" -m unittest discover -s tests >/dev/null 2>&1) \

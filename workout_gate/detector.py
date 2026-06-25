@@ -28,6 +28,8 @@ KNEE_UP_ANGLE = 160.0    # knee angle above this = standing
 MIN_VISIBILITY = 0.5
 MAX_TORSO_TILT = 45.0   # degrees from horizontal; lying-ish body required (pushups)
 SMOOTH_FRAMES = 3
+LOST_RESET_FRAMES = 5   # consecutive frames with no usable body before a rep-in-progress is abandoned
+SIDE_STICKY_MARGIN = 0.15  # the other side must beat the current one by this much in visibility to switch
 
 
 def angle_at(a, b, c) -> float:
@@ -51,9 +53,11 @@ class RepCounter:
         self.count = 0
         self.is_down = False
         self._window = deque(maxlen=SMOOTH_FRAMES)
+        self._lost = 0
 
     def update(self, elbow_angle: float) -> bool:
         """Feed one frame's elbow angle. Returns True if a rep just completed."""
+        self._lost = 0
         self._window.append(elbow_angle)
         smoothed = sum(self._window) / len(self._window)
         if not self.is_down and smoothed < self.down_angle:
@@ -63,6 +67,18 @@ class RepCounter:
             self.count += 1
             return True
         return False
+
+    def lost(self) -> None:
+        """Register a frame with no usable angle (body gone / out of frame /
+        posture broken). After LOST_RESET_FRAMES in a row, abandon any descent
+        in progress and clear the smoothing window, so a body that leaves and
+        re-enters the frame can't complete a phantom rep from stale state — and
+        pre-gap angles never blend into the first fresh frames. Biases toward
+        under-counting on a dropout, which is the credible direction."""
+        self._lost += 1
+        if self._lost >= LOST_RESET_FRAMES:
+            self._window.clear()
+            self.is_down = False
 
     @property
     def smoothed_angle(self) -> float:
@@ -84,19 +100,27 @@ class RepCounter:
 # ─────────────────────────────────────────────────────────────────────────
 
 
-def _best_side(landmarks, side_ids):
-    """Pick the body side the camera sees best. Returns (side_index, points)
-    for the side with the highest minimum visibility, or None if neither is
-    visible enough."""
-    best = None
+def _best_side(landmarks, side_ids, current=None, margin=0.0):
+    """Pick the body side the camera sees best, by highest minimum visibility.
+    Returns (side_index, points) or None if neither side is visible enough.
+
+    Stickiness: if `current` (the side chosen last frame) is still visible and
+    within `margin` of the best side, keep it. This stops per-frame left/right
+    flapping in profile views, where the two sides report different joint
+    angles and a flip injects a fake jump into the smoothing window."""
+    scored = []
     for idx, ids in enumerate(side_ids):
         pts = [landmarks[i] for i in ids]
         vis = min(p.visibility for p in pts)
-        if best is None or vis > best[0]:
-            best = (vis, idx, pts)
-    if best is None or best[0] < MIN_VISIBILITY:
+        scored.append((vis, idx, pts))
+    best_vis, best_idx, best_pts = max(scored, key=lambda s: s[0])
+    if best_vis < MIN_VISIBILITY:
         return None
-    return best[1], best[2]
+    if current is not None:
+        cur_vis, cur_idx, cur_pts = scored[current]
+        if cur_vis >= MIN_VISIBILITY and best_vis - cur_vis <= margin:
+            return cur_idx, cur_pts
+    return best_idx, best_pts
 
 
 class ExerciseCounter:
@@ -115,6 +139,7 @@ class ExerciseCounter:
         self.body_visible = False
         self.posture_ok = False
         self.angle = 180.0
+        self._side = None   # last chosen side, for sticky selection
 
     @property
     def count(self) -> int:
@@ -136,14 +161,18 @@ class ExerciseCounter:
         self.body_visible = False
         self.posture_ok = False
         if landmarks is None:
+            self.reps.lost()
             return False
-        picked = _best_side(landmarks, self.SIDES)
+        picked = _best_side(landmarks, self.SIDES, self._side, SIDE_STICKY_MARGIN)
         if picked is None:
+            self.reps.lost()
             return False
         side_idx, pts = picked
+        self._side = side_idx
         self.body_visible = True
         self.posture_ok = self.posture(landmarks, side_idx, pts)
         if not self.posture_ok:
+            self.reps.lost()
             return False
         a, b, c = pts
         self.angle = angle_at((a.x, a.y), (b.x, b.y), (c.x, c.y))

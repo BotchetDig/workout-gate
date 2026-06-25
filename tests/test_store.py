@@ -60,6 +60,12 @@ class StoreTest(unittest.TestCase):
         self.assertIsNone(self.store.running_challenge_pid())
         self.assertFalse((Path(self.tmp.name) / "challenge.pid").exists())
 
+    def test_try_claim_challenge_single_flight(self):
+        self.assertTrue(self.store.try_claim_challenge())   # free -> claimed
+        self.assertFalse(self.store.try_claim_challenge())  # already active -> denied
+        self.store.clear_challenge_pid()
+        self.assertTrue(self.store.try_claim_challenge())   # released -> claimable again
+
     def test_unknown_keys_preserved_with_new_defaults(self):
         """A config written by an older/newer version keeps defaults for
         missing keys (forward-compat)."""

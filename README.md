@@ -2,12 +2,16 @@
 
 > Your AI works hard, so should you.
 
-A Claude Code hook that blocks your prompt until you work out — push-ups or
-squats, counted live via webcam. When a challenge fires you pick your pain
-(say 6 push-ups *or* 9 squats). Random reps, session-persistent debt (no
-closing the tab to skip), streak stats, and three trigger modes.
+<p align="center">
+  <img src="assets/demo.gif" alt="Workout Gate — push-ups gate your AI coding prompts" width="640">
+</p>
 
-*Version française : [README.fr.md](README.fr.md)*
+A Claude Code and Codex hook that blocks your prompt until you work out —
+push-ups or squats, counted live via webcam. When a challenge fires you pick
+your pain (say 6 push-ups *or* 9 squats). Random reps, session-persistent debt
+(no closing the tab to skip), streak stats, and three trigger modes.
+
+*Version française : [README.fr.md](README.fr.md) · made by [@Botchet](https://x.com/Botchet)*
 
 ## Requirements
 
@@ -18,7 +22,7 @@ closing the tab to skip), streak stats, and three trigger modes.
 
 ## Install
 
-### As a Claude Code plugin (recommended)
+### As a Claude Code plugin (CLI + desktop, recommended)
 
 ```
 /plugin marketplace add BotchetDig/workout-gate
@@ -26,11 +30,45 @@ closing the tab to skip), streak stats, and three trigger modes.
 ```
 
 Then **start a new session** (or run `/reload-plugins`) — nothing happens
-until you do. Onboarding pops up in a Terminal window on its own —
-dependencies install, then a 30-second wizard (your max, trigger choice, a
-2-pushup camera test). Until setup is done, prompts pass freely. The gate and
-`/workout-gate:workout` then work in every session, and plugin updates never
-break the install (the runtime lives in `~/.workout-gate/`).
+until you do. The plugin works in Claude Code CLI and desktop. Onboarding pops
+up in a Terminal window on its own — dependencies install, then a 30-second
+wizard (your max, trigger choice, a 2-pushup camera test). Until setup is done,
+prompts pass freely. The gate and `/workout-gate:workout` then work in every
+session, and plugin updates never break the install (the runtime lives in
+`~/.workout-gate/`).
+
+### Also works in Codex (CLI + desktop)
+
+The gate uses the same `UserPromptSubmit` hook in **Codex** — CLI and desktop.
+From Codex, open `/plugins`, add the `BotchetDig/workout-gate` marketplace if
+needed, then install `workout-gate`. Codex shows the hook review separately, so
+approve the plugin hooks once with `/hooks` before testing a prompt.
+
+Prefer terminal commands? After setup, wire it into all your Codex sessions:
+
+```bash
+workout codex on     # adds the hook to ~/.codex/hooks.json
+workout codex off    # remove it
+```
+
+If `workout` is not on your PATH yet, use the installed launcher directly:
+
+```bash
+~/.workout-gate/app/workout codex on
+```
+
+Heads-up: `workout global on` wires both Claude Code *and* Codex when it sees
+`~/.codex`, because you're gating your AI usage, not one tool. Verified working
+across all four surfaces — Claude Code CLI and desktop, Codex CLI and desktop.
+
+Everything is **shared across tools**: one runtime in `~/.workout-gate/` holds
+your debt, prompt counter, stats and streak. Dodge a challenge in Claude Code
+and the debt blocks your next Codex prompt. Concurrent prompts from two tools
+can't double-trigger (the counter is locked) and never open two webcam windows
+at once (a challenge already running elsewhere just lets the other prompt
+through). On macOS desktop flows that run hooks without a controlling terminal,
+the challenge opens in a Terminal window so the camera prompt attaches to
+Terminal — force it either way with `WORKOUT_GATE_TERMINAL=1` / `0`.
 
 ### One line, without the plugin
 
@@ -57,7 +95,9 @@ for a non-interactive install with defaults (every 15 prompts, 5–10 reps).
 ## Usage
 
 Drive it with `! workout` from inside Claude Code (the `!` prefix runs a shell
-command — instant, **zero tokens**), or just `workout` from any terminal.
+command — instant, **zero tokens**), or just `workout` from any terminal. Codex
+CLI does not have Claude's `!` shell shortcut, so use a terminal for settings
+commands like `workout on`, `workout off`, and `workout status`.
 
 | Command | Effect |
 |---|---|
@@ -115,6 +155,8 @@ webcam challenge itself is unchanged everywhere.
   extension, with smoothing and a posture guard so you can't cheat.
 - When more than one exercise is enabled, the challenge offers a choice
   ("pick your pain") — or picks at random in `mode random`.
+- The challenge window names whoever's paying right now — **CLAUDE** or
+  **CODEX** — same trash-talk voice, just the tag.
 - Every rep is written to disk the moment it happens (atomic writes): quit at
   4/8 and you keep 4 in the stats, with 4 still owed next session.
 - Data lives in `~/.workout-gate/`: `config.json`, `state.json`, `stats.json`,
@@ -122,11 +164,16 @@ webcam challenge itself is unchanged everywhere.
 
 ## Escape hatches (anti-lockout, by design)
 
-1. `! workout off` from inside Claude Code — prompts starting with `!` or
-   `/workout` are never gated, so you can always reach this.
-2. `workout off` from any terminal.
+1. `workout off` from any terminal — the universal off switch (works no matter
+   which tool you're in).
+2. Gate-management prompts are never blocked, so you can always reach the gate:
+   `/workout ...` in Claude Code, or the bare `workout ...` / `wg ...` forms
+   in Codex CLI. They may still cost a model turn in Codex; use a terminal for
+   zero-token control.
 3. `WORKOUT_GATE_OFF=1` env var bypasses everything.
-4. **Fail-open**: no webcam, broken dependency, any crash → your prompt goes
+4. A challenge already running in another tool/session → this prompt fails open
+   (no second webcam window).
+5. **Fail-open**: no webcam, broken dependency, any crash → your prompt goes
    through and the error lands in `~/.workout-gate/gate.log`. You can never be
    locked out of your own tool.
 
@@ -143,6 +190,15 @@ workout global off           # to remove
 This surgically adds one hook entry to `~/.claude/settings.json` (a backup of
 your original file is kept next to it) and removes exactly that on `off`.
 Takes effect in new sessions.
+
+For Codex CLI without the plugin, use:
+
+```bash
+workout codex on
+workout codex off
+```
+
+Then approve the hook once with `/hooks` in a new Codex CLI session.
 
 ## Tests
 
@@ -200,3 +256,8 @@ exercise is two steps in `workout_gate/detector.py` and nothing else:
 Config defaults, presets, the setup wizard, the dashboard, the choice screen
 and per-exercise stats all read the registry — they pick it up automatically.
 Run the tests (`test_factory.py` proves a new entry flows end-to-end).
+
+---
+
+Built by **[@Botchet](https://x.com/Botchet)**. If Workout Gate made you sweat,
+a follow is appreciated. 🏋️

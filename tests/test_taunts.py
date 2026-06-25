@@ -1,6 +1,29 @@
+import os
 import unittest
+from unittest import mock
 
 from workout_gate import taunts
+
+
+class CoachNameTest(unittest.TestCase):
+    def tearDown(self):
+        os.environ.pop("WORKOUT_GATE_SOURCE", None)
+
+    def test_default_is_claude(self):
+        os.environ.pop("WORKOUT_GATE_SOURCE", None)
+        self.assertEqual(taunts.coach_name(), "CLAUDE")
+
+    def test_codex_source(self):
+        os.environ["WORKOUT_GATE_SOURCE"] = "codex"
+        self.assertEqual(taunts.coach_name(), "CODEX")
+
+    def test_claude_source_case_insensitive(self):
+        os.environ["WORKOUT_GATE_SOURCE"] = "Claude"
+        self.assertEqual(taunts.coach_name(), "CLAUDE")
+
+    def test_unknown_source_is_neutral_coach(self):
+        os.environ["WORKOUT_GATE_SOURCE"] = "aider"
+        self.assertEqual(taunts.coach_name(), "COACH")
 
 
 class TauntTest(unittest.TestCase):

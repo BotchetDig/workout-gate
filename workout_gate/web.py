@@ -249,12 +249,28 @@ def open_dashboard() -> None:
         print("Could not start the dashboard server. Try: workout tui")
         return
     url = f"http://127.0.0.1:{port}/"
-    import webbrowser
-    try:
-        webbrowser.open(url)
-    except Exception:
-        pass
+    _open_browser(url)
     print(f"Workout Gate dashboard → {url}")
+
+
+def _open_browser(url: str) -> bool:
+    """Best-effort open the URL in the default browser. On macOS `webbrowser.open`
+    can return False (or no-op) without raising, leaving the tab unopened with no
+    signal — so prefer the `open` command there and fall back to webbrowser.
+    Returns True if something plausibly handled it; the caller prints the URL
+    either way, so a failure is never fatal."""
+    if sys.platform == "darwin":
+        try:
+            subprocess.run(["open", url], check=True,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return True
+        except (OSError, subprocess.SubprocessError):
+            pass
+    try:
+        import webbrowser
+        return webbrowser.open(url)
+    except Exception:
+        return False
 
 
 # ─────────────────────────── page ───────────────────────────

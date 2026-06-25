@@ -4,7 +4,8 @@ from collections import namedtuple
 
 from workout_gate.detector import (
     EXERCISES, L_ANKLE, L_ELBOW, L_HIP, L_KNEE, L_SHOULDER, L_WRIST,
-    PushupCounter, RepCounter, SquatCounter, angle_at, make_counter,
+    LOST_RESET_FRAMES, PushupCounter, RepCounter, SquatCounter, _best_side,
+    angle_at, make_counter,
 )
 
 Lm = namedtuple("Lm", "x y visibility")
@@ -56,6 +57,76 @@ class TestRepCounter(unittest.TestCase):
         for a in hold(170) + hold(70, 30) + hold(170):
             c.update(a)
         self.assertEqual(c.count, 1)
+
+
+class TestRepCounterDropout(unittest.TestCase):
+    def test_lost_after_down_abandons_rep(self):
+        """Down, then the body leaves frame for a while, then re-enters already
+        extended: that rise must NOT count (it was never a real up-phase)."""
+        c = RepCounter()
+        for a in hold(170) + hold(70):  # settle at the bottom, is_down=True
+            c.update(a)
+        self.assertTrue(c.is_down)
+        for _ in range(LOST_RESET_FRAMES):
+            c.lost()
+        self.assertFalse(c.is_down)  # descent abandoned
+        for a in hold(170):          # re-enter extended
+            c.update(a)
+        self.assertEqual(c.count, 0)
+
+    def test_brief_flicker_keeps_rep(self):
+        """A flicker shorter than the reset window must not drop a real rep."""
+        c = RepCounter()
+        for a in hold(170) + hold(70):
+            c.update(a)
+        for _ in range(LOST_RESET_FRAMES - 1):  # one frame short of abandoning
+            c.lost()
+        self.assertTrue(c.is_down)
+        for a in hold(170):
+            c.update(a)
+        self.assertEqual(c.count, 1)
+
+    def test_lost_clears_stale_smoothing(self):
+        """Angles from before a dropout must not blend into fresh frames."""
+        c = RepCounter()
+        for a in hold(70):  # window full of 'down' angles
+            c.update(a)
+        for _ in range(LOST_RESET_FRAMES):
+            c.lost()
+        self.assertEqual(len(c._window), 0)
+
+
+class TestStickySide(unittest.TestCase):
+    def _lms(self, left_vis, right_vis):
+        lms = [Lm(0.0, 0.0, 0.0)] * 33
+        from workout_gate.detector import (
+            R_SHOULDER, R_ELBOW, R_WRIST,
+        )
+        for i in (L_SHOULDER, L_ELBOW, L_WRIST):
+            lms[i] = Lm(0.4, 0.5, left_vis)
+        for i in (R_SHOULDER, R_ELBOW, R_WRIST):
+            lms[i] = Lm(0.6, 0.5, right_vis)
+        return lms
+
+    def test_keeps_current_side_within_margin(self):
+        sides = ((L_SHOULDER, L_ELBOW, L_WRIST),
+                 (12, 14, 16))  # right side triple
+        # right is marginally more visible, but we're on left -> stay on left
+        lms = self._lms(left_vis=0.8, right_vis=0.9)
+        idx, _ = _best_side(lms, sides, current=0, margin=0.15)
+        self.assertEqual(idx, 0)
+
+    def test_switches_when_clearly_better(self):
+        sides = ((L_SHOULDER, L_ELBOW, L_WRIST), (12, 14, 16))
+        lms = self._lms(left_vis=0.55, right_vis=0.95)  # right wins by > margin
+        idx, _ = _best_side(lms, sides, current=0, margin=0.15)
+        self.assertEqual(idx, 1)
+
+    def test_drops_current_side_below_min_visibility(self):
+        sides = ((L_SHOULDER, L_ELBOW, L_WRIST), (12, 14, 16))
+        lms = self._lms(left_vis=0.2, right_vis=0.9)  # left no longer usable
+        idx, _ = _best_side(lms, sides, current=0, margin=0.15)
+        self.assertEqual(idx, 1)
 
 
 class TestAngle(unittest.TestCase):

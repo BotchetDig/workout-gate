@@ -6,11 +6,18 @@ WORKOUT_GATE_DIR env var, mainly for tests).
 """
 from __future__ import annotations  # PEP 604 (str | None) on Python 3.9
 
+import contextlib
 import copy
 import datetime
 import json
 import os
+import tempfile
 from pathlib import Path
+
+try:
+    import fcntl  # POSIX file locking (macOS, Linux)
+except ImportError:  # pragma: no cover - Windows has no fcntl
+    fcntl = None
 
 from .detector import EXERCISES, default_exercises_config
 
@@ -65,9 +72,66 @@ def _load(name: str, defaults: dict) -> dict:
 
 def _save(name: str, data: dict) -> None:
     path = data_dir() / name
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(data, indent=2))
-    os.replace(tmp, path)
+    # Unique temp per writer: a fixed ".tmp" name lets two concurrent processes
+    # (e.g. the desktop gate hook and a stale plugin hook) write the same temp,
+    # so the first os.replace consumes it and the second dies with
+    # FileNotFoundError. mkstemp guarantees a private name in the same dir, so
+    # os.replace stays atomic across processes.
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=f".{name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(json.dumps(data, indent=2))
+        os.replace(tmp, path)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.unlink(tmp)
+        raise
+
+
+@contextlib.contextmanager
+def locked(name: str = "state.lock"):
+    """Cross-process exclusive lock (flock) so concurrent gates — multiple
+    Claude/Codex sessions, CLI and desktop at once — don't lose updates in a
+    read-modify-write of the shared state under ~/.workout-gate/. Atomic writes
+    prevent corruption; this prevents lost increments/decrements.
+
+    Best-effort by design: if locking is unavailable (Windows, odd filesystem)
+    we proceed WITHOUT it rather than ever blocking a prompt — a missed lock
+    costs at worst one miscount, a wedged lock could lock the user out of their
+    own tool, which is the cardinal sin here."""
+    if fcntl is None:
+        yield
+        return
+    path = data_dir() / name
+    try:
+        f = path.open("w")
+    except OSError:
+        yield
+        return
+    try:
+        try:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+        except OSError:
+            pass
+        yield
+    finally:
+        try:
+            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        except OSError:
+            pass
+        f.close()
+
+
+def mutate_state(mutator):
+    """Locked read-modify-write of state.json. `mutator(state)` mutates the
+    dict in place and may return a value, which is passed back. Use this for
+    any update that reads-then-writes the current value (prompt-count bump, debt
+    decrement) so simultaneous tools serialize instead of clobbering."""
+    with locked():
+        state = load_state()
+        result = mutator(state)
+        save_state(state)
+    return result
 
 
 def load_config() -> dict:
@@ -169,6 +233,21 @@ def running_challenge_pid() -> int | None:
     except (OSError, ValueError):
         path.unlink(missing_ok=True)
         return None
+
+
+def try_claim_challenge() -> bool:
+    """Atomically claim the single challenge slot, under the cross-process lock.
+    Returns True if claimed (the caller may open the webcam), False if a
+    challenge is already active anywhere. Without this, two hooks firing nearly
+    at once both read "no pid" and both open a window — the check and the write
+    must be one locked critical section. The claim is this process's pid in the
+    same challenge.pid file run_challenge() uses, so a live gate holds the slot
+    until the webcam process takes it over; release with clear_challenge_pid()."""
+    with locked():
+        if running_challenge_pid() is not None:
+            return False
+        (data_dir() / "challenge.pid").write_text(str(os.getpid()))
+        return True
 
 
 def streak_days(by_day: dict, ref: str | None = None) -> int:
